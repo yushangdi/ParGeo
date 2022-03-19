@@ -382,5 +382,3 @@ namespace pargeo::kdTree
 #include "treeImpl.h"
 #include "knnImpl.h"
 #include "rangeSearchImpl.h"
-#include "bccpImpl.h"
-#include "wspdImpl.h"
