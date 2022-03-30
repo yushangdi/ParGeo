@@ -23,7 +23,7 @@
 #pragma once
 #include "parlay/parallel.h"
 #include "parlay/primitives.h"
-#include "pargeo/IO.h"
+#include "IO.h"
 
 namespace pargeo {
 

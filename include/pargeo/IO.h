@@ -26,7 +26,7 @@
 #include <fstream>
 #include <string>
 #include <cstring>
-#include "pargeo/point.h"
+#include "point.h"
 #include "parlay/primitives.h"
 #include "parlay/parallel.h"
 #include "parlay/io.h"

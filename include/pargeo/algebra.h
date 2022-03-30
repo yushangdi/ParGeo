@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pargeo/point.h"
+#include "point.h"
 
 namespace pargeo {
   // All inputs are row-major
