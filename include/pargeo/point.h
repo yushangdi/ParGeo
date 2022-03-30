@@ -132,6 +132,15 @@ namespace pargeo {
   template<int dim>
   using lpoint = _point<dim, long, double, _empty>;
 
+  template<int dim, class _tAtt>
+  using pointD = _point<dim, double, double, _tAtt>;
+
+  template<int dim, class _tAtt>
+  using fpointD = _point<dim, float, float, _tAtt>;
+
+  template<int dim, class _tAtt>
+  using lpointD = _point<dim, long, double, _tAtt>;
+
   template<class _A, class _B>
   _B pointCast(_B p) {
     _B q;

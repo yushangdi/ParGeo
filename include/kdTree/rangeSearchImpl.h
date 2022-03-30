@@ -101,6 +101,19 @@ namespace pargeo::kdTree
   }
 
   template <int dim, typename objT>
+  int rangeCount(
+      node<dim, objT> *tree,
+      objT query,
+      double radius)
+  {
+    int output = 0;
+    auto collect = [&](objT *p)
+    { ++output; };
+    rangeTraverse(tree, query, radius, collect);
+    return output;
+  }
+
+  template <int dim, typename objT>
   parlay::sequence<size_t> bruteforceRange(parlay::sequence<objT> &elems,
                                            objT query,
                                            double radius)
