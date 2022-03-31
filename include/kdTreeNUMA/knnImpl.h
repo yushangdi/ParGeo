@@ -28,6 +28,7 @@
 #include "parlay/sequence.h"
 #include "kdTree.h"
 #include "pargeo/point.h"
+#include <omp.h>
 
 namespace pargeo::kdTreeNUMA
 {
@@ -253,10 +254,7 @@ namespace pargeo::kdTreeNUMA
     auto idx = parlay::sequence<size_t>(k * queries.size());
     #pragma omp parallel for proc_bind(master)// num_threads( numThreads/2 ) 
     for ( size_t i = 0; i < queries.size(); i++ ){
-          int place_num = omp_get_place_num();
-          if(place_num != 0){
-            std::cout << 111 << std::endl;
-          }
+          // int place_num = omp_get_place_num();
           knnBuf::buffer buf = knnBuf::buffer<objT *>(k, out.cut(i * 2 * k, (i + 1) * 2 * k));
           knnHelper<dim, nodeT, objT>(tree, queries[i], buf);
           buf.keepK();

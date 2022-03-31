@@ -116,6 +116,7 @@ namespace pargeo::kdTreeNUMA
     bool numa = false;
 
   public:
+    node<_dim, _objT> *get_space_ptr(){return space;}
     tree(parlay::slice<_objT *, _objT *> _items,
          typename baseT::intT leafSize = 16)
     {
