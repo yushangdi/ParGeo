@@ -11,7 +11,14 @@ namespace pargeo {
 
   struct _empty {
     int arr[0]; // todo this produces a struct of size 0 but seems dangerous, need to check
+    _empty(){}
+    
+    template<class T>
+    _empty(T x){}
   };
+
+  bool operator<(_empty a, _empty b) {return true;}
+  bool operator==(_empty a, _empty b) {return true;}
 
   template <int _dim, class _tData, class _tFloat, class _tAtt>
   class _point {
@@ -21,6 +28,8 @@ namespace pargeo {
   public:
 
     static constexpr int dim = _dim;
+    static constexpr bool hasAttribute = !std::is_same<_empty, _tAtt>::value;
+    static constexpr int data_len = _dim + hasAttribute; 
     static constexpr _tFloat eps = 1e-5;
     using floatT = _tFloat;
     using attT = _tAtt;
@@ -41,6 +50,13 @@ namespace pargeo {
     template<class _tIn>
     _point(parlay::slice<_tIn*,_tIn*> p) {
       for(int i=0; i<_dim; ++i) x[i] = (_tData)p[i];}
+
+    _point(parlay::sequence<_tData>& p, int s, int e){
+      if(e-s+1 > _dim){ // has attribute
+        attribute = (_tAtt) p[e-1];
+      }
+      for(int i=0;i<_dim;++i) x[i] = p[s+i];
+    }
 
     void setEmpty() {x[0]=empty;}
 
@@ -76,20 +92,21 @@ namespace pargeo {
       _tData aVal = 0;
       _tData bVal = 0;
       for (int ii=0; ii<dim; ++ii) {
-	aVal += a[ii];
-	bVal += b[ii];
+        aVal += a[ii];
+        bVal += b[ii];
       }
       return aVal < bVal;
     }
 
-    // friend bool operator>(_point a, _point b) {
-    //   return !(a<b) && !(a==b);
-    // }
+    static bool attComp(_point a, _point b){
+      return a.attribute < b.attribute;
+    }
 
     friend bool operator==(_point a, _point b) {
       for (int ii=0; ii<dim; ++ii) {
-	if (a[ii] != b[ii]) return false;}
-      return true;}
+	     if (a[ii] != b[ii]) return false;}
+       if(a.attribute == b.attribute) return true; else return false;
+    }
 
     friend bool operator!=(_point a, _point b) {return !(a==b);}
 
@@ -134,12 +151,6 @@ namespace pargeo {
 
   template<int dim, class _tAtt>
   using pointD = _point<dim, double, double, _tAtt>;
-
-  template<int dim, class _tAtt>
-  using fpointD = _point<dim, float, float, _tAtt>;
-
-  template<int dim, class _tAtt>
-  using lpointD = _point<dim, long, double, _tAtt>;
 
   template<class _A, class _B>
   _B pointCast(_B p) {

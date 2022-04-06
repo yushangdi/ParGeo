@@ -94,12 +94,12 @@ namespace pargeo {
   template <class pointT, class Seq>
   parlay::sequence<pointT> parsePoints(Seq W) {
     using coord = double;
-    int d = pointT::dim;
+    int d = pointT::data_len;
     size_t n = W.size()/d;
     auto a = parlay::tabulate(d * n, [&] (size_t i) -> coord {
-				       return atof(W[i]);});
+               return atof(W[i]);});
     auto points = parlay::tabulate(n, [&] (size_t i) -> pointT {
-					return pointT(a.cut(d*i,d*(i + 1)));});
+          return pointT(a, d*i, d*(i + 1));});
     return points;
   }
 
@@ -107,7 +107,6 @@ namespace pargeo {
   parlay::sequence<pointT> readPointsFromFile(char const *fname) {
     parlay::sequence<char> S = pargeo::IO::readStringFromFile(fname);
     parlay::sequence<char*> W = pargeo::IO::stringToWords(S);
-    int d = pointT::dim;
     if (W.size() == 0)
       throw std::runtime_error("readPointsFromFile empty file");
 
