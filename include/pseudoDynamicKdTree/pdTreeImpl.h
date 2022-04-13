@@ -142,6 +142,8 @@ namespace pargeo::pdKdTree
         if (lPt < rPt)
         {
           std::swap(items[lPt], items[rPt]);
+          // std::swap(itemActive[lPt], itemActive[rPt]);
+          // std::swap(itemLeaf[lPt], itemLeaf[rPt]);
           rPt--;
         }
         else
@@ -167,6 +169,8 @@ namespace pargeo::pdKdTree
     { // create another slice for the leaves each belongs to
       left = NULL;
       right = NULL;
+      for(size_t i=0;i<size();i++)
+        itemLeaf[i] = this;
     }
     else
     {
@@ -182,8 +186,8 @@ namespace pargeo::pdKdTree
       }
 
       // Recursive construction
-      space[0] = nodeT(items.cut(0, median), itemActive.cut(0, median), median, space + 1, leafSize);
-      space[2 * median - 1] = nodeT(items.cut(median, size()), itemActive.cut(median, size()), size() - median, space + 2 * median, leafSize);
+      space[0] = nodeT(items.cut(0, median), itemActive.cut(0, median), itemLeaf.cut(0, median), median, space + 1, leafSize);
+      space[2 * median - 1] = nodeT(items.cut(median, size()), itemActive.cut(median, size()), itemLeaf.cut(median, size()), size() - median, space + 2 * median, leafSize);
       left = space;
       right = space + 2 * median - 1;
       left->sib = right;
@@ -204,6 +208,9 @@ namespace pargeo::pdKdTree
     {
       left = NULL;
       right = NULL;
+      parallel_for(0, size(), [&](size_t i){
+        itemLeaf[i] = this;
+      });
     }
     else
     {
@@ -236,9 +243,9 @@ namespace pargeo::pdKdTree
 
       // Recursive construction
       parlay::par_do([&]()
-                     { space[0] = nodeT(items.cut(0, median), itemActive.cut(0, median), median, space + 1, flags.cut(0, median), leafSize); },
+                     { space[0] = nodeT(items.cut(0, median), itemActive.cut(0, median), itemLeaf.cut(0, median), median, space + 1, flags.cut(0, median), leafSize); },
                      [&]()
-                     { space[2 * median - 1] = nodeT(items.cut(median, size()), itemActive.cut(median, size()), size() - median, space + 2 * median, flags.cut(median, size()), leafSize); });
+                     { space[2 * median - 1] = nodeT(items.cut(median, size()), itemActive.cut(median, size()), itemLeaf.cut(median, size()), size() - median, space + 2 * median, flags.cut(median, size()), leafSize); });
       left = space;
       right = space + 2 * median - 1;
       left->sib = right;
@@ -252,12 +259,13 @@ namespace pargeo::pdKdTree
   node<_dim, _objT>::node() {}
 
   template <int _dim, class _objT>
-  node<_dim, _objT>::node(parlay::slice<_objT **, _objT **> itemss,
-                          parlay::slice<bool*, bool*> itemActivess,
+  node<_dim, _objT>::node(parlay::slice<_objT **, _objT **> items_,
+                          parlay::slice<bool*, bool*> itemActive_,
+                          parlay::slice<nodeT **, nodeT **> itemLeaf_;
                           intT nn,
                           nodeT *space,
                           parlay::slice<bool *, bool *> flags,
-                          intT leafSize) : items(itemss), itemActive(itemActivess)
+                          intT leafSize) : items(items_), itemActive(itemActive_), itemLeaf(itemLeaf_)
   {
     resetId();
     if (size() > 2000)
@@ -267,11 +275,12 @@ namespace pargeo::pdKdTree
   }
 
   template <int _dim, class _objT>
-  node<_dim, _objT>::node(parlay::slice<_objT **, _objT **> itemss,
-                          parlay::slice<bool*, bool*> itemActivess,
+  node<_dim, _objT>::node(parlay::slice<_objT **, _objT **> items_,
+                          parlay::slice<bool *, bool *> itemActive_,
+                          parlay::slice<nodeT **, nodeT **> itemLeaf_,
                           intT nn,
                           nodeT *space,
-                          intT leafSize) : items(itemss), itemActive(itemActivess)
+                          intT leafSize) : items(items_), itemActive(itemActive_), itemLeaf(itemLeaf_)
   {
     resetId();
     constructSerial(space, leafSize);

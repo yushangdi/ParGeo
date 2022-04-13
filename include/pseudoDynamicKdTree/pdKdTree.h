@@ -101,6 +101,7 @@ namespace pargeo::pdKdTree
     parlay::sequence<_objT *> *allItems;
     parlay::sequence<bool> *allItemActive;
     parlay::sequence<int> *id2loc;
+    parlay::sequence<nodeT *> *allItemLeaf;
     node<_dim, _objT> *space;
 
   public:
@@ -117,22 +118,27 @@ namespace pargeo::pdKdTree
       // allocate space for a copy of the items
       allItems = new parlay::sequence<_objT *>(_items.size());
       allItemActive = new parlay::sequence<bool>(_items.size(),false);
+      allItemLeaf = new parlay::sequence<nodeT *>(_items.size());
       id2loc = new parlay::sequence<int>(_items.size());
 
-      for (size_t i = 0; i < _items.size(); ++i)
+
+      for (size_t i = 0; i < _items.size(); ++i){
         allItems->at(i) = &_items[i];
+        allItems[i]->attribute = i;
+      }
 
       // construct self
 
       baseT::items = allItems->cut(0, allItems->size());
       baseT::itemActive = allItemActive->cut(0, allItemActive->size());
+      baseT::itemLeaf = loc2leaf->cut(0, allItemLeaf->size());
 
       baseT::resetId();
       baseT::constructSerial(space, leafSize);
 
       for (size_t i=0; i < _items.size(); ++i)
         id2loc[allItems[i]->attribute] = i;
-      // assumes attribute carries id
+      
     }
 
     tree(parlay::slice<_objT *, _objT *> _items,
@@ -175,7 +181,29 @@ namespace pargeo::pdKdTree
       free(space);
       delete allItems;
       delete allItemActive;
+      delete allItemLeaf;
       delete id2loc;
+    }
+
+    inline void activateItem(int idx){
+      int loc = id2loc[idx];
+      allItemActive[loc] = true;
+      baseT* cur = allItemLeaf[loc];
+
+      for( ; cur->par != NULL; cur = cur->par){
+        cur->active = true;
+      }
+    }
+
+    void activateRange(int st, int ed){
+      if(ed - st < 100){
+        for(int i=st; i<ed; i++)
+          activateItem(i);
+      }else{
+        parallel_for(st, ed, [&](int i){
+          activateItem(i);
+        });
+      }
     }
   };
 
@@ -211,6 +239,8 @@ namespace pargeo::pdKdTree
     parlay::slice<_objT **, _objT **> items;
 
     parlay::slice<bool *, bool *> itemActive;
+
+    parlay::slice<nodeT **, nodeT **> itemLeaf;
 
     inline void minCoords(pointT &_pMin, pointT &p)
     {
@@ -275,13 +305,13 @@ namespace pargeo::pdKdTree
 
     inline intT size() { return items.size(); }
 
-    inline _objT *operator[](intT i) { if(active) return items[i]; else return NULL; }
+    inline _objT *operator[](intT i) { if(itemActive[i]) return items[i]; else return NULL; }
 
-    inline _objT *at(intT i) { if(active) return items[i]; else return NULL; }
+    inline _objT *at(intT i) { if(itemActive[i]) return items[i]; else return NULL; }
 
     inline bool isLeaf() { return !left; }
 
-    inline _objT *getItem(intT i) { if(active) return items[i]; else return NULL; }
+    inline _objT *getItem(intT i) { if(itemActive[i]) return items[i]; else return NULL; }
 
     inline pointT getMax() { return pMax; }
 
