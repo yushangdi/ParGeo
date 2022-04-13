@@ -159,18 +159,45 @@ namespace pargeo::pdKdTree
   }
 
   template <int _dim, class _objT>
+  void node<_dim, _objT>::initSerial()
+  {
+    par = NULL;
+    if(!left && !right){
+      for(size_t i=0;i<size();i++)
+        itemLeaf[i]=this;
+    }else{
+      left->initSerial();
+      right->initSerial();
+      left->par = this;
+      right->par = this;
+    }
+  }
+
+  template <int _dim, class _objT>
+  void node<_dim, _objT>::initParallel()
+  {
+    par = NULL;
+    if(!left && !right){
+      parallel_for(0, size(), [&](size_t i){
+        itemLeaf[i]=this;
+      });
+    }else{
+      parlay::par_do([&](){ left->initParallel(); }, [&](){ right->initParallel(); });
+      left->par = this;
+      right->par = this;
+    }
+  }
+
+  template <int _dim, class _objT>
   void node<_dim, _objT>::constructSerial(nodeT *space, intT leafSize)
   {
     boundingBoxSerial();
     sib = NULL;
-    par = NULL;
     active = false;
     if (size() <= leafSize)
     { // create another slice for the leaves each belongs to
       left = NULL;
       right = NULL;
-      for(size_t i=0;i<size();i++)
-        itemLeaf[i] = this;
     }
     else
     {
@@ -192,8 +219,6 @@ namespace pargeo::pdKdTree
       right = space + 2 * median - 1;
       left->sib = right;
       right->sib = left;
-      left->par = this;
-      right->par = this;
     }
   }
 
@@ -202,15 +227,11 @@ namespace pargeo::pdKdTree
   {
     boundingBoxParallel();
     sib = NULL;
-    par = NULL;
     active = false;
     if (size() <= leafSize)
     {
       left = NULL;
       right = NULL;
-      parallel_for(0, size(), [&](size_t i){
-        itemLeaf[i] = this;
-      });
     }
     else
     {
@@ -250,8 +271,6 @@ namespace pargeo::pdKdTree
       right = space + 2 * median - 1;
       left->sib = right;
       right->sib = left;
-      left->par = this;
-      right->par = this;
     }
   }
 
@@ -261,7 +280,7 @@ namespace pargeo::pdKdTree
   template <int _dim, class _objT>
   node<_dim, _objT>::node(parlay::slice<_objT **, _objT **> items_,
                           parlay::slice<bool*, bool*> itemActive_,
-                          parlay::slice<nodeT **, nodeT **> itemLeaf_;
+                          parlay::slice<nodeT **, nodeT **> itemLeaf_,
                           intT nn,
                           nodeT *space,
                           parlay::slice<bool *, bool *> flags,
@@ -324,7 +343,7 @@ namespace pargeo::pdKdTree
   }
 
   template <int dim, class objT>
-  node<dim, objT> *build(parlay::slice<objT *, objT *> P,
+  tree<dim, objT> *build(parlay::slice<objT *, objT *> P,
                          bool parallel,
                          size_t leafSize)
   {
@@ -344,7 +363,7 @@ namespace pargeo::pdKdTree
   }
 
   template <int dim, class objT>
-  node<dim, objT> *build(parlay::sequence<objT> &P,
+  tree<dim, objT> *build(parlay::sequence<objT> &P,
                          bool parallel,
                          size_t leafSize)
   {

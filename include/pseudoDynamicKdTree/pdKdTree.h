@@ -36,21 +36,6 @@ namespace pargeo::pdKdTree
   template <int _dim, class _objT>
   class node;
 
-  /* Kd-tree construction and destruction */
-
-  template <int dim, class objT>
-  node<dim, objT> *build(parlay::slice<objT *, objT *> P,
-                         bool parallel = true,
-                         size_t leafSize = 16);
-
-  template <int dim, class objT>
-  node<dim, objT> *build(parlay::sequence<objT> &P,
-                         bool parallel = true,
-                         size_t leafSize = 16);
-
-  template <int dim, class objT>
-  void del(node<dim, objT> *tree);
-
   /* Kd-tree knn search */
 
   template <int dim, class objT>
@@ -58,6 +43,12 @@ namespace pargeo::pdKdTree
                                     size_t k,
                                     node<dim, objT> *tree = nullptr,
                                     bool sorted = false);
+
+  template <int dim, class objT>
+  parlay::sequence<size_t> Knn(objT queries,
+                                size_t k,
+                                node<dim, objT> *tree,
+                                bool sorted = false);
 
   /* Kd-tree range search */
 
@@ -101,7 +92,7 @@ namespace pargeo::pdKdTree
     parlay::sequence<_objT *> *allItems;
     parlay::sequence<bool> *allItemActive;
     parlay::sequence<int> *id2loc;
-    parlay::sequence<nodeT *> *allItemLeaf;
+    parlay::sequence<baseT *> *allItemLeaf;
     node<_dim, _objT> *space;
 
   public:
@@ -118,27 +109,26 @@ namespace pargeo::pdKdTree
       // allocate space for a copy of the items
       allItems = new parlay::sequence<_objT *>(_items.size());
       allItemActive = new parlay::sequence<bool>(_items.size(),false);
-      allItemLeaf = new parlay::sequence<nodeT *>(_items.size());
+      allItemLeaf = new parlay::sequence<nodeT *>(_items.size(),NULL);
       id2loc = new parlay::sequence<int>(_items.size());
 
 
       for (size_t i = 0; i < _items.size(); ++i){
         allItems->at(i) = &_items[i];
-        allItems[i]->attribute = i;
+        allItems->at(i)->attribute = i;
       }
 
       // construct self
 
       baseT::items = allItems->cut(0, allItems->size());
       baseT::itemActive = allItemActive->cut(0, allItemActive->size());
-      baseT::itemLeaf = loc2leaf->cut(0, allItemLeaf->size());
+      baseT::itemLeaf = allItemLeaf->cut(0, allItemLeaf->size());
 
       baseT::resetId();
       baseT::constructSerial(space, leafSize);
 
       for (size_t i=0; i < _items.size(); ++i)
-        id2loc[allItems[i]->attribute] = i;
-      
+        id2loc->at(allItems->at(i)->attribute) = i;
     }
 
     tree(parlay::slice<_objT *, _objT *> _items,
@@ -155,15 +145,20 @@ namespace pargeo::pdKdTree
       // allocate space for a copy of the items
       allItems = new parlay::sequence<_objT *>(_items.size());
       allItemActive = new parlay::sequence<bool>(_items.size(),false);
+      allItemLeaf = new parlay::sequence<nodeT *>(_items.size());
       id2loc = new parlay::sequence<int>(_items.size());
 
       parlay::parallel_for(0, _items.size(), [&](size_t i)
-                           { allItems->at(i) = &_items[i]; });
+      { 
+        allItems->at(i) = &_items[i]; 
+        allItems->at(i)->attribute = i;
+      });
 
       // construct self
 
       baseT::items = allItems->cut(0, allItems->size());
       baseT::itemActive = allItemActive->cut(0, allItemActive->size());
+      baseT::itemLeaf = allItemLeaf->cut(0, allItemLeaf->size());
 
       baseT::resetId();
       if (baseT::size() > 2000)
@@ -172,7 +167,7 @@ namespace pargeo::pdKdTree
         baseT::constructSerial(space, leafSize);
 
       parlay::parallel_for(0, _items.size(), [&](size_t i){
-        id2loc[allItems[i]->attribute] = i;
+        id2loc->at(allItems->at(i)->attribute) = i;
       });
     }
 
@@ -186,12 +181,14 @@ namespace pargeo::pdKdTree
     }
 
     inline void activateItem(int idx){
-      int loc = id2loc[idx];
-      allItemActive[loc] = true;
-      baseT* cur = allItemLeaf[loc];
-
-      for( ; cur->par != NULL; cur = cur->par){
-        cur->active = true;
+      int loc = id2loc->at(idx);
+      allItemActive->at(loc) = true;
+      baseT* cur = allItemLeaf->at(loc);
+      std::cout<<"loc: "<<loc<<std::endl;
+      std::cout<<"address: "<<cur<<std::endl;
+      for( ; cur != NULL; cur = cur->parent()){
+          std::cout<<"address: "<<cur<<std::endl;
+        cur->activate();
       }
     }
 
@@ -205,7 +202,31 @@ namespace pargeo::pdKdTree
         });
       }
     }
+
+    void print_data(){
+      for (size_t i=0; i < allItemLeaf->size(); i++)
+          std::cout<<allItemLeaf->at(i)<<std::endl;
+    }
   };
+
+
+
+  /* Kd-tree construction and destruction */
+
+  template <int dim, class objT>
+  tree<dim, objT> *build(parlay::slice<objT *, objT *> P,
+                         bool parallel = true,
+                         size_t leafSize = 16);
+
+  template <int dim, class objT>
+  tree<dim, objT> *build(parlay::sequence<objT> &P,
+                         bool parallel = true,
+                         size_t leafSize = 16);
+
+  template <int dim, class objT>
+  void del(node<dim, objT> *tree);
+
+
 
   template <int _dim, class _objT>
   class node
@@ -301,6 +322,10 @@ namespace pargeo::pdKdTree
 
     inline nodeT *siblin() { return sib; }
 
+    inline void activate() { active = true; }
+
+    inline void deactivate() { active = false; }
+
     inline bool empty() { return !active; }
 
     inline intT size() { return items.size(); }
@@ -320,6 +345,10 @@ namespace pargeo::pdKdTree
     inline floatT getMax(int i) { return pMax[i]; }
 
     inline floatT getMin(int i) { return pMin[i]; }
+
+    void initSerial();
+
+    void initParallel();
 
     // inline void setEmpty() { id = -2; }
 
@@ -397,13 +426,17 @@ namespace pargeo::pdKdTree
 
     node();
 
-    node(parlay::slice<_objT **, _objT **> itemss,
+    node(parlay::slice<_objT **, _objT **> items_,
+         parlay::slice<bool *, bool *> itemActive_,
+         parlay::slice<nodeT **, nodeT **> itemLeaf_,
          intT nn,
          nodeT *space,
          parlay::slice<bool *, bool *> flags,
          intT leafSize = 16);
 
-    node(parlay::slice<_objT **, _objT **> itemss,
+    node(parlay::slice<_objT **, _objT **> items_,
+         parlay::slice<bool *, bool *> itemActive_,
+         parlay::slice<nodeT **, nodeT **> itemLeaf_,
          intT nn,
          nodeT *space,
          intT leafSize = 16);

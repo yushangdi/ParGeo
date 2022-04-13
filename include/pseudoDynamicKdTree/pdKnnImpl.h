@@ -101,7 +101,7 @@ namespace pargeo::pdKdTree
   }
 
   template <int dim, typename nodeT, typename objT>
-  void knnRangeHelper(nodeT *tree, objT &q, point<dim> qMin, point<dim> qMax,
+  void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax,
                       double radius, knnBuf::buffer<objT *> &out)
   {
     int relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
@@ -110,7 +110,7 @@ namespace pargeo::pdKdTree
     {
       return;
     }
-    else if (relation == tree->boxInclude)
+    else if (relation == tree->boxInclude) // first includes second, target region includes tree region
     { // use threshold to decide going down vs bruteforce
       for (size_t i = 0; i < tree->size(); ++i)
       {
@@ -146,7 +146,7 @@ namespace pargeo::pdKdTree
   template <int dim, typename nodeT, typename objT>
   void knnRange(nodeT *tree, objT &q, double radius, knnBuf::buffer<objT *> &out)
   {
-    point<dim> qMin, qMax;
+    objT qMin, qMax;
     for (size_t i = 0; i < dim; i++)
     {
       auto tmp = q[i] - radius;
@@ -160,9 +160,7 @@ namespace pargeo::pdKdTree
   void knnHelper(nodeT *tree, objT &q, knnBuf::buffer<objT *> &out)
   {
     // find the leaf first
-    int relation = tree->boxCompare(tree->getMin(), tree->getMax(),
-                                    point<dim>(q.coords()),
-                                    point<dim>(q.coords()));
+    int relation = tree->boxCompare(tree->getMin(), tree->getMax(), q, q);
     if (relation == tree->boxExclude || tree->empty())
     {
       return;
@@ -175,7 +173,7 @@ namespace pargeo::pdKdTree
         for (size_t i = 0; i < tree->size(); ++i)
         {
           objT *p = tree->getItem(i);
-          out.insert(knnBuf::elem(q.dist(*p), p));
+          if(p) out.insert(knnBuf::elem(q.dist(*p), p));
         }
       }
       else
@@ -200,7 +198,7 @@ namespace pargeo::pdKdTree
       }
     }
     else
-    { // Buffer filled to a least k
+    { // Buffer filled to at least k
       if (tree->siblin() != NULL && !tree->siblin()->empty())
       {
         knnBuf::elem tmp = out.keepK();
@@ -238,6 +236,27 @@ namespace pargeo::pdKdTree
                          });
     if (freeTree)
       free(tree);
+    return idx;
+  }
+
+  template <int dim, class objT>
+  parlay::sequence<size_t> Knn(objT query,
+                                size_t k,
+                                node<dim, objT> *tree,
+                                bool sorted)
+  {
+    using nodeT = node<dim, objT>;
+    auto out = parlay::sequence<knnBuf::elem<objT *>>(2 * k);
+    auto idx = parlay::sequence<size_t>(k);
+    knnBuf::buffer buf = knnBuf::buffer<objT *>(k, out.cut(0, out.size()));
+    knnHelper<dim, nodeT, objT>(tree, query, buf);
+    buf.keepK();
+    if (sorted)
+      buf.sort();
+    for (size_t j = 0; j < k; ++j)
+    {
+     idx[j] = buf[j].entry->attribute;
+    }
     return idx;
   }
 
