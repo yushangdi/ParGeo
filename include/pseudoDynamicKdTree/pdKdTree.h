@@ -36,50 +36,6 @@ namespace pargeo::pdKdTree
   template <int _dim, class _objT>
   class node;
 
-  /* Kd-tree knn search */
-
-  template <int dim, class objT>
-  parlay::sequence<size_t> batchKnn(parlay::sequence<objT> &queries,
-                                    size_t k,
-                                    node<dim, objT> *tree = nullptr,
-                                    bool sorted = false);
-
-  template <int dim, class objT>
-  parlay::sequence<size_t> Knn(objT queries,
-                                size_t k,
-                                node<dim, objT> *tree,
-                                bool sorted = false);
-
-  /* Kd-tree range search */
-
-  template <int dim, typename objT>
-  parlay::sequence<objT *> rangeSearch(
-      node<dim, objT> *tree,
-      objT query,
-      double radius);
-
-  template <int dim, typename objT, typename F>
-  void rangeTraverse(
-      node<dim, objT> *tree,
-      objT query,
-      double radius,
-      F func);
-
-  template <int dim, typename objT>
-  parlay::sequence<objT *> orthogonalRangeSearch(
-      node<dim, objT> *tree,
-      objT query,
-      double halfLen);
-
-  template <int dim, typename objT, typename F>
-  void orthogonalRangeTraverse(
-      node<dim, objT> *tree,
-      objT query,
-      double halfLen,
-      F func);
-
-
-
   /********* Implementations *********/
 
   template <int _dim, class _objT>
@@ -184,10 +140,7 @@ namespace pargeo::pdKdTree
       int loc = id2loc->at(idx);
       allItemActive->at(loc) = true;
       baseT* cur = allItemLeaf->at(loc);
-      std::cout<<"loc: "<<loc<<std::endl;
-      std::cout<<"address: "<<cur<<std::endl;
       for( ; cur != NULL; cur = cur->parent()){
-          std::cout<<"address: "<<cur<<std::endl;
         cur->activate();
       }
     }
@@ -203,10 +156,8 @@ namespace pargeo::pdKdTree
       }
     }
 
-    void print_data(){
-      for (size_t i=0; i < allItemLeaf->size(); i++)
-          std::cout<<allItemLeaf->at(i)<<std::endl;
-    }
+    _objT* NearestNeighbor(size_t id);
+
   };
 
 

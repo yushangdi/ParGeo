@@ -178,7 +178,7 @@ namespace pargeo::pdKdTree
   {
     par = NULL;
     if(!left && !right){
-      parallel_for(0, size(), [&](size_t i){
+      parlay::parallel_for(0, size(), [&](size_t i){
         itemLeaf[i]=this;
       });
     }else{
