@@ -158,6 +158,18 @@ namespace pargeo::pdKdTree
 
     _objT* NearestNeighbor(size_t id);
 
+    void print_data(){
+      for(size_t i=0;i<allItems->size();i++){
+        std::cout<<allItems->at(i)->attribute<<" ";
+      }
+      std::cout<<std::endl;
+
+      for(size_t i=0;i<allItemLeaf->size();i++){
+        std::cout<<allItemLeaf->at(i)<<" ";
+      }
+      std::cout<<std::endl;
+    }
+
   };
 
 
