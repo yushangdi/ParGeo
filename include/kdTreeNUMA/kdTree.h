@@ -207,9 +207,7 @@ namespace pargeo::kdTreeNUMA
       baseT::left = tree0->left ? space + (tree0->left - tree0->space): nullptr;
       baseT::right = tree0->right ? space + (tree0->right - tree0->space): nullptr;
       baseT::sib = tree0->sib ? space + (tree0->sib - tree0->space): nullptr;
-      // for(int i=0;i<5;++i){
-      //   std::cout << *baseT::items[i] << std::endl;
-      // }
+
       parlay::parallel_for(0, 2 * _items.size() - 1, [&](size_t i){
         space[i] = node<_dim, _objT>(tree0->space[i], tree0->space, space, tree0->allItems_alloc, allItems_alloc);
       });
@@ -451,6 +449,6 @@ namespace pargeo::kdTreeNUMA
 
 #include "treeImpl.h"
 #include "knnImpl.h"
-#include "rangeSearchImpl.h"
-#include "bccpImpl.h"
-#include "wspdImpl.h"
+// #include "rangeSearchImpl.h"
+// #include "bccpImpl.h"
+// #include "wspdImpl.h"
