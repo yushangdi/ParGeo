@@ -114,6 +114,7 @@ namespace pargeo::kdTreeNUMA
     _objT ** allItems_alloc;
     node<_dim, _objT> *space;
     bool numa = false;
+    _objT* items_begin;
 
   public:
     node<_dim, _objT> *get_space_ptr(){return space;}
@@ -126,9 +127,9 @@ namespace pargeo::kdTreeNUMA
 
       // allocate space for children
       space = (nodeT *)malloc(sizeof(nodeT) * (2 * _items.size() - 1));
-
+      items_begin = _items.begin();
       // allocate space for a copy of the items
-      _objT ** allItems_alloc = (_objT **)malloc(sizeof(_objT *) * _items.size());
+      allItems_alloc = (_objT **)malloc(sizeof(_objT *) * _items.size());
       // allItems = parlay::slice<_objT **, _objT **>(allItems_alloc, allItems_alloc+_items.size());
       // allItems = new parlay::sequence<_objT *>(_items.size());
 
@@ -157,9 +158,9 @@ namespace pargeo::kdTreeNUMA
 
       // allocate space for children
       space = (nodeT *)malloc(sizeof(nodeT) * (2 * _items.size() - 1));
-
+      items_begin = _items.begin();
       // allocate space for a copy of the items
-      _objT ** allItems_alloc = (_objT **)malloc(sizeof(_objT *) * _items.size());
+      allItems_alloc = (_objT **)malloc(sizeof(_objT *) * _items.size());
       // allItems = parlay::slice<_objT **, _objT **>(allItems_alloc, allItems_alloc+_items.size());
       // allItems = new parlay::sequence<_objT *>(_items.size());
 
@@ -191,14 +192,24 @@ namespace pargeo::kdTreeNUMA
       numa = true;
 
       space = (nodeT *)numa_alloc_onnode(sizeof(nodeT) * (2 * _items.size() - 1), numa_node);
-      _objT ** allItems_alloc = (_objT **)numa_alloc_onnode(sizeof(_objT *) * _items.size() , numa_node);
+      allItems_alloc = (_objT **)numa_alloc_onnode(sizeof(_objT *) * _items.size() , numa_node);
       // allItems = parlay::slice<_objT **, _objT **>(allItems_alloc, allItems_alloc+_items.size());
       // baseT::items = allItems.cut(0, allItems.size());
       baseT::items = parlay::slice<_objT **, _objT **>(allItems_alloc, allItems_alloc+_items.size());
+      items_begin = _items.begin();
       for (size_t i = 0; i < _items.size(); ++i)
-        baseT::items[i] = &_items[i];
+        baseT::items[i] = items_begin + (tree0->items[i] - tree0->items_begin);
 
-
+      baseT::setId(tree0->getId());
+      baseT::k = tree0->k;
+      baseT::pMin = tree0->getMin();
+      baseT::pMax = tree0->getMax();
+      baseT::left = tree0->left ? space + (tree0->left - tree0->space): nullptr;
+      baseT::right = tree0->right ? space + (tree0->right - tree0->space): nullptr;
+      baseT::sib = tree0->sib ? space + (tree0->sib - tree0->space): nullptr;
+      // for(int i=0;i<5;++i){
+      //   std::cout << *baseT::items[i] << std::endl;
+      // }
       parlay::parallel_for(0, 2 * _items.size() - 1, [&](size_t i){
         space[i] = node<_dim, _objT>(tree0->space[i], tree0->space, space, tree0->allItems_alloc, allItems_alloc);
       });
@@ -222,7 +233,7 @@ namespace pargeo::kdTreeNUMA
   class node
   {
 
-  protected:
+  public:
     using intT = int;
 
     using floatT = double;
@@ -291,7 +302,7 @@ namespace pargeo::kdTreeNUMA
 
     void constructParallel(nodeT *space, parlay::slice<bool *, bool *> flags, intT leafSize);
 
-  public:
+
     using objT = _objT;
 
     static constexpr int dim = _dim;

@@ -281,7 +281,8 @@ namespace pargeo::kdTreeNUMA
   {
     setId(node_orig.getId());
     k = node_orig.k;
-    pMin, pMax = node_orig.getMin(), node_orig.getMax();
+    pMin = node_orig.getMin();
+    pMax = node_orig.getMax();
     left = node_orig.left ? node_begin + (node_orig.left - node_begin_orig): nullptr;
     right = node_orig.right ? node_begin + (node_orig.right - node_begin_orig): nullptr;
     sib = node_orig.sib ? node_begin + (node_orig.sib - node_begin_orig): nullptr;
