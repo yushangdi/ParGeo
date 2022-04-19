@@ -15,10 +15,10 @@ namespace pargeo {
     
     template<class T>
     _empty(T x){}
-  };
 
-  bool operator<(_empty a, _empty b) {return true;}
-  bool operator==(_empty a, _empty b) {return true;}
+    friend bool operator<(_empty a, _empty b) {return true;}
+    friend bool operator==(_empty a, _empty b) {return true;}
+  };
 
   template <int _dim, class _tData, class _tFloat, class _tAtt>
   class _point {
