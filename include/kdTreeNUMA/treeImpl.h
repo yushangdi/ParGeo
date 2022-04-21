@@ -279,6 +279,7 @@ namespace pargeo::kdTreeNUMA
                           _objT ** itemss_start_orig,
                           _objT ** itemss_start) 
   {
+    if(node_orig.size()!=0){
     setId(node_orig.getId());
     k = node_orig.k;
     pMin = node_orig.getMin();
@@ -287,6 +288,7 @@ namespace pargeo::kdTreeNUMA
     right = node_orig.right ? node_begin + (node_orig.right - node_begin_orig): nullptr;
     sib = node_orig.sib ? node_begin + (node_orig.sib - node_begin_orig): nullptr;
     items = parlay::make_slice(itemss_start + (node_orig.items.begin()-itemss_start_orig), itemss_start + (node_orig.items.end()-itemss_start_orig));
+    }
   }
 
   template <typename nodeT>
