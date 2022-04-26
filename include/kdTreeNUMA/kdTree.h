@@ -246,6 +246,8 @@ namespace pargeo::kdTreeNUMA
 
     pointT pMin, pMax;
 
+    floatT split;
+
     nodeT *left;
 
     nodeT *right;
@@ -324,6 +326,8 @@ namespace pargeo::kdTreeNUMA
     inline pointT getMax() { return pMax; }
 
     inline pointT getMin() { return pMin; }
+
+    inline float getSplit() {return split;}
 
     inline floatT getMax(int i) { return pMax[i]; }
 

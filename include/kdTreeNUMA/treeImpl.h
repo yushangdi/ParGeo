@@ -183,6 +183,8 @@ namespace pargeo::kdTreeNUMA
       //   throw std::runtime_error("Error, kdNode overwrite.");
       // }
 
+      split = (items[median][k] + items[median][k+1]) / 2;
+
       // Recursive construction
       space[0] = nodeT(items.cut(0, median), median, space + 1, leafSize);
       space[2 * median - 1] = nodeT(items.cut(median, size()), size() - median, space + 2 * median, leafSize);
@@ -232,7 +234,8 @@ namespace pargeo::kdTreeNUMA
       // if (!space[0].isEmpty() || !space[2*median-1].isEmpty()) {
       //   throw std::runtime_error("Error, kdNode overwrite.");
       // }
-
+      split = (items[median][k] + items[median][k+1]) / 2;
+      
       // Recursive construction
       parlay::par_do([&]()
                      { space[0] = nodeT(items.cut(0, median), median, space + 1, flags.cut(0, median), leafSize); },

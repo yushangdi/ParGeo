@@ -237,6 +237,66 @@ namespace pargeo::kdTreeNUMA
     return idx;
   }
 
+    template <int dim, typename nodeT, typename objT>
+  void knnHelperSimple(nodeT *tree, objT &query, knnBuf::buffer<objT *> &out)
+  {
+
+    if (tree->isLeaf())
+    {
+      // basecase
+      for (size_t i = 0; i < tree->size(); ++i)
+      {
+        objT *p = tree->getItem(i);
+        out.insert(knnBuf::elem(q.dist(*p), p));
+      }
+      return;
+    }
+
+    const double split = tree->getSplit();
+    const int axis = tree->k;
+
+    const nodeT* next[2] = {tree->left, tree->right}; //next[0] = tree->left; next[1] = tree->right;
+
+    const int dir = query[axis] < split ? 0 : 1;
+    knnHelper<dim, nodeT, objT>(next[dir], query, out);
+    // nnSearchRecursive(query, node->next[dir], guess, minDist);
+
+		const double diff = fabs(query[axis] - split);
+    if ((int)out.size() < k || diff < out.back().cost) knnHelper<dim, nodeT, objT>(next[!dir], query, out);
+      // knnSearchRecursive(query, node->next[!dir], queue, k);
+  }
+
+  template <int dim, class objT>
+  parlay::sequence<size_t> batchKnnSimple(parlay::slice<objT *, objT *> queries,
+                                    size_t k,
+                                    node<dim, objT> *tree,
+                                    bool sorted)
+  {
+    using nodeT = node<dim, objT>;
+    bool freeTree = false;
+    if (!tree)
+    {
+      freeTree = true;
+      tree = build<dim, objT>(queries, true);
+    }
+    auto out = parlay::sequence<knnBuf::elem<objT *>>(2 * k * queries.size());
+    auto idx = parlay::sequence<size_t>(k * queries.size());
+    parlay::parallel_for(0, queries.size(), [&](size_t i)
+                         {
+                           knnBuf::buffer buf = knnBuf::buffer<objT *>(k, out.cut(i * 2 * k, (i + 1) * 2 * k));
+                           knnHelperSimple<dim, nodeT, objT>(tree, queries[i], buf);
+                           buf.keepK();
+                           if (sorted)
+                             buf.sort();
+                           for (size_t j = 0; j < k; ++j)
+                           {
+                             idx[i * k + j] = buf[j].entry - queries.begin();
+                           }
+                         });
+    if (freeTree)
+      free(tree);
+    return idx;
+  }
   // template <int dim, class objT>
   // parlay::sequence<size_t> batchKnnOmp(parlay::slice<objT *, objT *> queries,
   //                                   size_t k,
