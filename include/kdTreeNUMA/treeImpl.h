@@ -183,7 +183,7 @@ namespace pargeo::kdTreeNUMA
       //   throw std::runtime_error("Error, kdNode overwrite.");
       // }
 
-      split = (items[median][k] + items[median][k+1]) / 2;
+      split = (items[median-1]->at(k) + items[median]->at(k)) / 2;
 
       // Recursive construction
       space[0] = nodeT(items.cut(0, median), median, space + 1, leafSize);
@@ -216,9 +216,9 @@ namespace pargeo::kdTreeNUMA
                            [&](intT i)
                            {
                              if (items[i]->at(k) < xM)
-                               flags[i] = 1;
-                             else
                                flags[i] = 0;
+                             else
+                               flags[i] = 1;
                            });
       auto mySplit = kdTreeInternal::split_two(items, flags);
       auto splited = mySplit.first;
@@ -234,7 +234,11 @@ namespace pargeo::kdTreeNUMA
       // if (!space[0].isEmpty() || !space[2*median-1].isEmpty()) {
       //   throw std::runtime_error("Error, kdNode overwrite.");
       // }
-      split = (items[median][k] + items[median][k+1]) / 2;
+      split = (items[median-1]->at(k) + items[median]->at(k)) / 2;
+
+      // std::cout << "====" << std::endl;
+      // std::cout << split << std::endl;
+      // std::cout << split << std::endl;
       
       // Recursive construction
       parlay::par_do([&]()
@@ -285,6 +289,7 @@ namespace pargeo::kdTreeNUMA
     if(node_orig.size()!=0){
     setId(node_orig.getId());
     k = node_orig.k;
+    split = node_orig.split;
     pMin = node_orig.getMin();
     pMax = node_orig.getMax();
     left = node_orig.left ? node_begin + (node_orig.left - node_begin_orig): nullptr;

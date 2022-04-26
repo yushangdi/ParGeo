@@ -61,6 +61,7 @@ namespace pargeo::kdTreeNUMA
       intT k;
       intT ptr;
       sliceT buf;
+      double max_cost = 0;
 
       buffer(intT t_k, sliceT t_buf) : k(t_k), ptr(0), buf(t_buf) {}
 
@@ -74,6 +75,10 @@ namespace pargeo::kdTreeNUMA
           throw std::runtime_error("Error, kbuffer not enough k.");
         ptr = k;
         std::nth_element(buf.begin(), buf.begin() + k - 1, buf.end());
+        max_cost = 0;
+        for(auto b = buf.begin(); b < buf.begin() + k ; ++b){
+          max_cost = std::max(max_cost, b->cost);
+        }
         return buf[k - 1];
       }
 
@@ -87,6 +92,7 @@ namespace pargeo::kdTreeNUMA
       void insert(elem<T> t_elem)
       {
         buf[ptr++] = t_elem;
+        max_cost = std::max(max_cost, t_elem.cost);
         if (ptr >= buf.size())
           keepK();
       }
@@ -98,6 +104,11 @@ namespace pargeo::kdTreeNUMA
         else
           return elem<T>();
       }
+
+      inline size_t size() {return ptr;}
+
+      inline double back() {return max_cost;}
+
     };
   }
 
@@ -231,6 +242,12 @@ namespace pargeo::kdTreeNUMA
                            {
                              idx[i * k + j] = buf[j].entry - queries.begin();
                            }
+                          //  if(i==0){
+                          //    for (size_t j = 0; j < k; ++j)
+                          //  {
+                          //    std::cout <<  buf[j].entry - queries.begin() << " " << buf[j].cost << std::endl;
+                          //  }
+                          //  }
                          });
     if (freeTree)
       free(tree);
@@ -238,7 +255,7 @@ namespace pargeo::kdTreeNUMA
   }
 
     template <int dim, typename nodeT, typename objT>
-  void knnHelperSimple(nodeT *tree, objT &query, knnBuf::buffer<objT *> &out)
+  void knnHelperSimple(nodeT *tree, objT &query, knnBuf::buffer<objT *> &out, int k)
   {
 
     if (tree->isLeaf())
@@ -247,7 +264,7 @@ namespace pargeo::kdTreeNUMA
       for (size_t i = 0; i < tree->size(); ++i)
       {
         objT *p = tree->getItem(i);
-        out.insert(knnBuf::elem(q.dist(*p), p));
+        out.insert(knnBuf::elem(query.dist(*p), p));
       }
       return;
     }
@@ -255,22 +272,22 @@ namespace pargeo::kdTreeNUMA
     const double split = tree->getSplit();
     const int axis = tree->k;
 
-    const nodeT* next[2] = {tree->left, tree->right}; //next[0] = tree->left; next[1] = tree->right;
+    nodeT* next[2] = {tree->left, tree->right}; //next[0] = tree->left; next[1] = tree->right;
 
     const int dir = query[axis] < split ? 0 : 1;
-    knnHelper<dim, nodeT, objT>(next[dir], query, out);
+    knnHelperSimple<dim, nodeT, objT>(next[dir], query, out, k);
     // nnSearchRecursive(query, node->next[dir], guess, minDist);
 
 		const double diff = fabs(query[axis] - split);
-    if ((int)out.size() < k || diff < out.back().cost) knnHelper<dim, nodeT, objT>(next[!dir], query, out);
+    if ((int)out.size() < k || diff < out.back()) knnHelperSimple<dim, nodeT, objT>(next[!dir], query, out, k);
       // knnSearchRecursive(query, node->next[!dir], queue, k);
   }
 
   template <int dim, class objT>
   parlay::sequence<size_t> batchKnnSimple(parlay::slice<objT *, objT *> queries,
                                     size_t k,
-                                    node<dim, objT> *tree,
-                                    bool sorted)
+                                    node<dim, objT> *tree = nullptr,
+                                    bool sorted = false)
   {
     using nodeT = node<dim, objT>;
     bool freeTree = false;
@@ -284,7 +301,8 @@ namespace pargeo::kdTreeNUMA
     parlay::parallel_for(0, queries.size(), [&](size_t i)
                          {
                            knnBuf::buffer buf = knnBuf::buffer<objT *>(k, out.cut(i * 2 * k, (i + 1) * 2 * k));
-                           knnHelperSimple<dim, nodeT, objT>(tree, queries[i], buf);
+                           knnHelperSimple<dim, nodeT, objT>(tree, queries[i], buf, k);
+                          //  std::cout <<"done" << std::endl;
                            buf.keepK();
                            if (sorted)
                              buf.sort();
@@ -292,6 +310,12 @@ namespace pargeo::kdTreeNUMA
                            {
                              idx[i * k + j] = buf[j].entry - queries.begin();
                            }
+                          //   if(i==0){
+                          //    for (size_t j = 0; j < k; ++j)
+                          //  {
+                          //    std::cout <<  buf[j].entry - queries.begin() << " " << buf[j].cost << std::endl;
+                          //  }
+                          //  }
                          });
     if (freeTree)
       free(tree);
