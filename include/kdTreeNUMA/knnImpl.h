@@ -113,6 +113,122 @@ namespace pargeo::kdTreeNUMA
   }
 
   template <int dim, typename nodeT, typename objT>
+  void knnRangeHelper2(nodeT *tree, objT &q,
+                      double radius, knnBuf::buffer<objT *> &out)
+  {
+    int relation = tree->boxBallCompare(q, radius, tree->getMin(), tree->getMax());
+
+    if (relation == tree->boxExclude)
+    {
+      return;
+    }
+    else
+    { // intersect
+      if (tree->isLeaf())
+      {
+        for (size_t i = 0; i < tree->size(); ++i)
+        {
+          objT *p = tree->getItem(i);
+          double dist = q.dist(*p);
+          if (dist <= radius)
+          {
+            out.insert(knnBuf::elem(dist, p));
+            radius = out.back();
+          }
+        }
+      }
+      else
+      {
+        knnRangeHelper2<dim, nodeT, objT>(tree->L(), q, radius, out);
+        radius =  out.back();
+        knnRangeHelper2<dim, nodeT, objT>(tree->R(), q, radius, out);
+      }
+    }
+  }
+
+  template <int dim, typename nodeT, typename objT>
+  void knnHelper2(nodeT *tree, objT &q, knnBuf::buffer<objT *> &out)
+  {
+    // find the leaf first
+    int relation = tree->boxCompare(tree->getMin(), tree->getMax(),
+                                    point<dim>(q.coords()),
+                                    point<dim>(q.coords()));
+    if (relation == tree->boxExclude)
+    {
+      return;
+    }
+    else
+    {
+      if (tree->isLeaf())
+      {
+        // basecase
+        for (size_t i = 0; i < tree->size(); ++i)
+        {
+          objT *p = tree->getItem(i);
+          out.insert(knnBuf::elem(q.dist(*p), p));
+        }
+      }
+      else
+      {
+        knnHelper2<dim, nodeT, objT>(tree->L(), q, out);
+        knnHelper2<dim, nodeT, objT>(tree->R(), q, out);
+      }
+    }
+
+    if (!out.hasK())
+    {
+      if (tree->siblin() == NULL)
+      {
+        throw std::runtime_error("Error, knnHelper reached root node without enough neighbors.");
+      }
+      for (size_t i = 0; i < tree->siblin()->size(); ++i)
+      {
+        objT *p = tree->siblin()->getItem(i);
+        out.insert(knnBuf::elem(q.dist(*p), p));
+      }
+    }
+    else
+    { // Buffer filled to a least k
+      if (tree->siblin() != NULL)
+      {
+        knnRangeHelper2<dim, nodeT, objT>(tree->siblin(), q, out.back(), out);
+      }
+    }
+  }
+
+  template <int dim, class objT>
+  parlay::sequence<size_t> batchKnn2(parlay::slice<objT *, objT *> queries,
+                                    size_t k,
+                                    node<dim, objT> *tree,
+                                    bool sorted=false)
+  {
+    using nodeT = node<dim, objT>;
+    bool freeTree = false;
+    if (!tree)
+    {
+      freeTree = true;
+      tree = build<dim, objT>(queries, true);
+    }
+    auto out = parlay::sequence<knnBuf::elem<objT *>>(2 * k * queries.size());
+    auto idx = parlay::sequence<size_t>(k * queries.size());
+    parlay::parallel_for(0, queries.size(), [&](size_t i)
+                         {
+                           knnBuf::buffer buf = knnBuf::buffer<objT *>(k, out.cut(i * 2 * k, (i + 1) * 2 * k));
+                           knnHelper2<dim, nodeT, objT>(tree, queries[i], buf);
+                           buf.keepK();
+                           if (sorted)
+                             buf.sort();
+                           for (size_t j = 0; j < k; ++j)
+                           {
+                             idx[i * k + j] = buf[j].entry - queries.begin();
+                           }
+                         });
+    if (freeTree)
+      free(tree);
+    return idx;
+  }
+
+  template <int dim, typename nodeT, typename objT>
   void knnRangeHelper(nodeT *tree, objT &q, point<dim> qMin, point<dim> qMax,
                       double radius, knnBuf::buffer<objT *> &out)
   {

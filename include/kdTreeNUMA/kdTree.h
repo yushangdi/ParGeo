@@ -79,25 +79,25 @@ namespace pargeo::kdTreeNUMA
 
   /* Bichromatic closest pair */
 
-  template <typename nodeT>
-  std::tuple<typename nodeT::objT *,
-             typename nodeT::objT *,
-             typename nodeT::objT::floatT>
-  bichromaticClosestPair(nodeT *n1, nodeT *n2);
+  // template <typename nodeT>
+  // std::tuple<typename nodeT::objT *,
+  //            typename nodeT::objT *,
+  //            typename nodeT::objT::floatT>
+  // bichromaticClosestPair(nodeT *n1, nodeT *n2);
 
-  /* Well-separated pair decomposition */
+  // /* Well-separated pair decomposition */
 
-  template <typename nodeT>
-  struct wsp
-  {
-    nodeT *u;
-    nodeT *v;
-    wsp(nodeT *uu, nodeT *vv) : u(uu), v(vv) {}
-  };
+  // template <typename nodeT>
+  // struct wsp
+  // {
+  //   nodeT *u;
+  //   nodeT *v;
+  //   wsp(nodeT *uu, nodeT *vv) : u(uu), v(vv) {}
+  // };
 
-  template <int dim>
-  parlay::sequence<wsp<node<dim, point<dim>>>>
-  wellSeparatedPairDecomp(node<dim, point<dim>> *tree, double s = 2);
+  // template <int dim>
+  // parlay::sequence<wsp<node<dim, point<dim>>>>
+  // wellSeparatedPairDecomp(node<dim, point<dim>> *tree, double s = 2);
 
 
 
@@ -407,6 +407,22 @@ namespace pargeo::kdTreeNUMA
         return boxOverlap;
     }
 
+    //find the point of rectangle that is the closest to the circle' center
+    inline pointT pointClosestToCenter(pointT center, pointT pMin, pointT pMax) {
+      pointT p;
+      for (int d = 0; d < dim; ++ d) {
+        p[d] = std::max(pMin[d], std::min(center[d], pMax[d]));
+      }
+      return p;
+    }
+
+    inline int boxBallCompare(pointT center, double r, pointT pMin, pointT pMax) {
+      pointT p = pointClosestToCenter(center, pMin, pMax);
+      double pToCenter = p.distSqr(center); //squared distance
+      if(pToCenter <= r*r) return  boxOverlap;
+      return boxExclude;
+    }
+
     node();
 
     node(parlay::slice<_objT **, _objT **> itemss,
@@ -453,6 +469,6 @@ namespace pargeo::kdTreeNUMA
 
 #include "treeImpl.h"
 #include "knnImpl.h"
-// #include "rangeSearchImpl.h"
+#include "rangeSearchImpl.h"
 // #include "bccpImpl.h"
 // #include "wspdImpl.h"
