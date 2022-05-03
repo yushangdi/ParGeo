@@ -107,7 +107,10 @@ namespace pargeo::kdTreeNUMA
 
       inline size_t size() {return ptr;}
 
-      inline double back() {return max_cost;}
+      inline double back() {
+        if(ptr<k){return std::numeric_limits<double>::max();}
+        return max_cost;
+      }
 
     };
   }
