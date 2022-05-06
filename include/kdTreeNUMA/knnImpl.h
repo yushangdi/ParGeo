@@ -205,6 +205,7 @@ namespace pargeo::kdTreeNUMA
                                     tree<dim, objT> *tree,
                                     parlay::slice<size_t *, size_t *> idx,
                                     parlay::slice<int *, int *> ordermap, //only used when shuffle search or shuffle tree is true
+                                    parlay::slice<int *, int *> treemap, //only used when shuffle search or shuffle tree is true
                                     bool shuffle_search = false,
                                     bool shuffle_tree = false,
                                     bool sorted=false)
@@ -228,7 +229,7 @@ namespace pargeo::kdTreeNUMA
         // size_t idx_i = queries[i].attribute;
         for (size_t j = 0; j < k; ++j){
           size_t result_id = buf[j].entry - tree->items_begin;
-          result_id = shuffle_tree ? ordermap[result_id] : result_id;
+          result_id = shuffle_tree ? treemap[result_id] : result_id;
           idx[idx_i * k + j] = result_id;
         }
       });
