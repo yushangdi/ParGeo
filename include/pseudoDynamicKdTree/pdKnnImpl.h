@@ -36,13 +36,14 @@ namespace pargeo::pdKdTree
   void knnRange(nodeT *tree, objT &q, double &radius, objT *&out);
 
   template <int dim, typename nodeT, typename objT>
-  void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax, double &radius, objT *&out);
+  void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax, double &radius, objT *&out, int relation);
 
   template <int dim, typename nodeT, typename objT>
   void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax, 
-                      double &radius, objT *&out)
+                      double &radius, objT *&out, int relation=-1)
   {
-    int relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
+    if(relation == -1)
+      relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
     if (relation == tree->boxExclude || tree->empty())
     {
       return;
@@ -68,7 +69,7 @@ namespace pargeo::pdKdTree
       else
       {
         // knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
-        knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
+        knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out, tree->boxInclude);
         // recompute box
         knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
       }
