@@ -68,7 +68,7 @@ namespace pargeo::pdKdTree
       }
       else
       {
-        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+        knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
         knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
       }
     }
@@ -92,7 +92,7 @@ namespace pargeo::pdKdTree
       }
       else
       {
-        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+        knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
         knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
       }
     }
