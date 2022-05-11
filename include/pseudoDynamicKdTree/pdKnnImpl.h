@@ -53,50 +53,57 @@ namespace pargeo::pdKdTree
     { // use threshold to decide going down vs bruteforce
       if (tree->isLeaf())
       {
-        for(size_t i=0; i<tree->size(); ++i)
-        {
+        parlay::parallel_for(0, tree->size(), [&](size_t i){
           objT *p = tree->getItem(i);
           if(p)
           {
             double dist = q.dist(*p);
-            if(dist < radius)
-            {
-              radius = dist;
-              out = p;
-            }
+            pargeo::write_min_and(&radius, dist, &out, p, std::less<double>());
           }
-        }
+        });
       }
       else
       {
-        auto leftRecurse = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);};
-        auto rightRecurse = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);};
-        parlay::par_do(leftRecurse, rightRecurse);
+        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+        knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+        // auto leftRecurse = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);};
+        // auto rightRecurse = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);};
+        // parlay::par_do(leftRecurse, rightRecurse);
       }
     }
     else
     { // intersect
       if (tree->isLeaf())
       {
-        for(size_t i=0; i<tree->size(); ++i)
-        {
+        // for(size_t i=0; i<tree->size(); ++i)
+        // {
+        //   objT *p = tree->getItem(i);
+        //   if(p)
+        //   {
+        //     double dist = q.dist(*p);
+        //     if(dist < radius)
+        //     {
+        //       radius = dist;
+        //       out = p;
+        //     }
+        //   }
+        // }
+        parlay::parallel_for(0, tree->size(), [&](size_t i){
           objT *p = tree->getItem(i);
           if(p)
           {
             double dist = q.dist(*p);
-            if(dist < radius)
-            {
-              radius = dist;
-              out = p;
-            }
+            pargeo::write_min_and(&radius, dist, &out, p, std::less<double>());
           }
-        }
+        });
       }
       else
       {
-        auto leftRecurse = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);};
-        auto rightRecurse = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);};
-        parlay::par_do(leftRecurse, rightRecurse);
+        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+        knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+        // auto leftRecurse = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);};
+        // auto rightRecurse = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);};
+        // parlay::par_do(leftRecurse, rightRecurse);
       }
     }
   }
