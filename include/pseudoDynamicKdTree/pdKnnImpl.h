@@ -83,7 +83,7 @@ namespace pargeo::pdKdTree
       }
       else
       {
-        knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
+        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
         // recompute box
         knnRangeHelper<dim, nodeT, objT>(tree->R(), q, qMin, qMax, radius, out);
         // knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
@@ -111,7 +111,7 @@ namespace pargeo::pdKdTree
     int loc = id2loc->at(id);
     objT q = *(allItems->at(loc));
     nodeT* cur = allItemLeaf->at(loc);
-    double radius = 1000;
+    double radius = std::numeric_limits<double>::max()/2;
     objT* out = NULL;
 
     if(!cur->empty()){
