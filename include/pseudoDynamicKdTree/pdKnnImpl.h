@@ -37,14 +37,13 @@ namespace pargeo::pdKdTree
   void knnRange(nodeT *tree, objT &q, double &radius, objT *&out);
 
   template <int dim, typename nodeT, typename objT>
-  void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax, double &radius, objT *&out, int relation=-1);
+  void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax, double &radius, objT *&out);
 
   template <int dim, typename nodeT, typename objT>
   void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax, 
-                      double &radius, objT *&out, int relation)
+                      double &radius, objT *&out)
   {
-    if(relation == -1)
-      relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
+    int relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
     if (relation == tree->boxExclude || tree->empty())
     {
       return;
@@ -69,11 +68,8 @@ namespace pargeo::pdKdTree
       }
       else
       {
-        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+        knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
         knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
-        // auto leftRecurse = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);};
-        // auto rightRecurse = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);};
-        // parlay::par_do(leftRecurse, rightRecurse);
       }
     }
     else
@@ -96,11 +92,8 @@ namespace pargeo::pdKdTree
       }
       else
       {
-        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+        knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
         knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
-        // auto leftRecurse = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);};
-        // auto rightRecurse = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);};
-        // parlay::par_do(leftRecurse, rightRecurse);
       }
     }
   }
