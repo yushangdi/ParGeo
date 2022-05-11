@@ -51,19 +51,19 @@ namespace pargeo::pdKdTree
     { // use threshold to decide going down vs bruteforce
       if (tree->isLeaf())
       {
-        // for (size_t i = 0; i < tree->size(); ++i)
-        // {
-        //   objT *p = tree->getItem(i);
-        //   if(p)
-        //   {
-        //     double dist = q.dist(*p);
-        //     if(dist < radius) 
-        //     {
-        //       radius = dist;
-        //       out = p;
-        //     }
-        //   }
-        // }
+        for (size_t i = 0; i < tree->size(); ++i)
+        {
+          objT *p = tree->getItem(i);
+          if(p)
+          {
+            double dist = q.dist(*p);
+            if(dist < radius) 
+            {
+              radius = dist;
+              out = p;
+            }
+          }
+        }
       }
       else
       {

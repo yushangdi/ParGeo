@@ -379,6 +379,10 @@ namespace pargeo::pdKdTree
         if (pMax1[i] < pMax2[i] || pMin1[i] > pMin2[i])
           include = false;
       }
+      int k;
+      for (int j = 0; j < 10; ++j) {
+        k = j*2;
+      }
       if (exclude)
         return boxExclude;
       else if (include)
