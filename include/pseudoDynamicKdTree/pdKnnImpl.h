@@ -36,13 +36,14 @@ namespace pargeo::pdKdTree
   void knnRange(nodeT *tree, objT &q, double &radius, objT *&out);
 
   template <int dim, typename nodeT, typename objT>
-  void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax, double &radius, objT *&out);
+  void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax, double &radius, objT *&out, int relation=-1);
 
   template <int dim, typename nodeT, typename objT>
   void knnRangeHelper(nodeT *tree, objT &q, objT qMin, objT qMax, 
-                      double &radius, objT *&out)
+                      double &radius, objT *&out, int relation)
   {
-    int  relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
+    if(relation == -1)
+      relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
     if (relation == tree->boxExclude || tree->empty())
     {
       return;
@@ -51,52 +52,40 @@ namespace pargeo::pdKdTree
     { // use threshold to decide going down vs bruteforce
       if (tree->isLeaf())
       {
-        for (size_t i = 0; i < tree->size(); ++i)
-        {
+        parlay::parallel_for(0, tree->size(), [&](size_t i){
           objT *p = tree->getItem(i);
           if(p)
           {
             double dist = q.dist(*p);
-            if(dist < radius) 
-            {
-              radius = dist;
-              out = p;
-            }
+            pargeo::write_min_and(&radius, dist, &out, p);
           }
-        }
+        });
       }
       else
       {
-        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
-        //knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out, tree->boxInclude);
-        // recompute box
-        knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+        left = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);}
+        right = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);}
+        parlay::par_do(left, right);
       }
     }
     else
     { // intersect
       if (tree->isLeaf())
       {
-        for (size_t i = 0; i < tree->size(); ++i)
-        {
+        parlay::parallel_for(0, tree->size(), [&](size_t i){
           objT *p = tree->getItem(i);
           if(p)
           {
             double dist = q.dist(*p);
-            if (dist < radius)
-            {
-              radius = dist;
-              out = p;
-            }
+            pargeo::write_min_and(&radius, dist, &out, p);
           }
-        }
+        });
       }
       else
       {
-        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
-        //knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
-        // recompute box
-        knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+        left = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);}
+        right = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);}
+        parlay::par_do(left, right);
       }
     }
   }

@@ -49,6 +49,22 @@ namespace pargeo {
     while (!std::atomic_compare_exchange_strong(a, &oldV, newV));
   }
 
+  template <typename ET, typename BT, typename F>
+  inline void write_min_and(ET *a, ET b, BT *c, BT d, F less) {
+    // if b < *a, set *a = b, and *c = d
+    ET t; BT tt; 
+    do {t = *a; tt = *c;}
+    while (less(b,t) && !atomic_compare_and_swap(a,t,b) && !atomic_compare_and_swap(c,tt,d));
+  }
+
+  template <typename ET, typename BT, typename F>
+  inline void write_max_and(ET *a, ET b, BT *c, BT d, F less) {
+    // if b > *a, set *a = b, and *c = d
+    ET t; BT tt; 
+    do {t = *a; tt = *c;}
+    while (less(t,b) && !atomic_compare_and_swap(a,t,b) && !atomic_compare_and_swap(c,tt,d));
+  }
+
   template <typename ET, typename F>
   inline bool write_min(ET *a, ET b, F less) {
     ET c; bool r=0;
