@@ -53,14 +53,19 @@ namespace pargeo::pdKdTree
     { // use threshold to decide going down vs bruteforce
       if (tree->isLeaf())
       {
-        parlay::parallel_for(0, tree->size(), [&](size_t i){
+        for(size_t i=0; i<tree->size(); ++i)
+        {
           objT *p = tree->getItem(i);
           if(p)
           {
             double dist = q.dist(*p);
-            pargeo::write_min_and(&radius, dist, &out, p, std::less<double>());
+            if(dist < radius)
+            {
+              radius = dist;
+              out = p;
+            }
           }
-        });
+        }
       }
       else
       {
@@ -75,27 +80,19 @@ namespace pargeo::pdKdTree
     { // intersect
       if (tree->isLeaf())
       {
-        // for(size_t i=0; i<tree->size(); ++i)
-        // {
-        //   objT *p = tree->getItem(i);
-        //   if(p)
-        //   {
-        //     double dist = q.dist(*p);
-        //     if(dist < radius)
-        //     {
-        //       radius = dist;
-        //       out = p;
-        //     }
-        //   }
-        // }
-        parlay::parallel_for(0, tree->size(), [&](size_t i){
+        for(size_t i=0; i<tree->size(); ++i)
+        {
           objT *p = tree->getItem(i);
           if(p)
           {
             double dist = q.dist(*p);
-            pargeo::write_min_and(&radius, dist, &out, p, std::less<double>());
+            if(dist < radius)
+            {
+              radius = dist;
+              out = p;
+            }
           }
-        });
+        }
       }
       else
       {
