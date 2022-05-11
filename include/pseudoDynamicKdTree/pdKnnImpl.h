@@ -28,6 +28,7 @@
 #include "parlay/sequence.h"
 #include "pdKdTree.h"
 #include "pargeo/point.h"
+#include "pargeo/atomics.h"
 
 namespace pargeo::pdKdTree
 {
@@ -57,15 +58,15 @@ namespace pargeo::pdKdTree
           if(p)
           {
             double dist = q.dist(*p);
-            pargeo::write_min_and(&radius, dist, &out, p);
+            pargeo::write_min_and(&radius, dist, &out, p, std::less<double>());
           }
         });
       }
       else
       {
-        left = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);}
-        right = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);}
-        parlay::par_do(left, right);
+        auto leftRecurse = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);};
+        auto rightRecurse = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);};
+        parlay::par_do(leftRecurse, rightRecurse);
       }
     }
     else
@@ -77,15 +78,15 @@ namespace pargeo::pdKdTree
           if(p)
           {
             double dist = q.dist(*p);
-            pargeo::write_min_and(&radius, dist, &out, p);
+            pargeo::write_min_and(&radius, dist, &out, p, std::less<double>());
           }
         });
       }
       else
       {
-        left = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);}
-        right = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);}
-        parlay::par_do(left, right);
+        auto leftRecurse = [&](){knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);};
+        auto rightRecurse = [&](){knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);};
+        parlay::par_do(leftRecurse, rightRecurse);
       }
     }
   }
