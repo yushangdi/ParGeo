@@ -49,18 +49,27 @@ namespace pargeo::pdKdTree
     }
     else if (relation == tree->boxInclude) // first includes second, target region includes tree region
     { // use threshold to decide going down vs bruteforce
-      for (size_t i = 0; i < tree->size(); ++i)
+      if (tree->isLeaf())
       {
-        objT *p = tree->getItem(i);
-        if(p)
+        for (size_t i = 0; i < tree->size(); ++i)
         {
-          double dist = q.dist(*p);
-          if(dist < radius) 
+          objT *p = tree->getItem(i);
+          if(p)
           {
-            radius = dist;
-            out = p;
+            double dist = q.dist(*p);
+            if(dist < radius) 
+            {
+              radius = dist;
+              out = p;
+            }
           }
         }
+      }
+      else
+      {
+        knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
+        // recompute box
+        knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
       }
     }
     else
