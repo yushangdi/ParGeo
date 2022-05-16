@@ -447,9 +447,9 @@ namespace pargeo::kdTreeNUMA
       pointT p = pointClosestToCenter(center, pMin, pMax);
       double pToCenter = p.distSqr(center); //squared distance
       if(pToCenter <= r*r){
-        p = pointFarthestToCenter(center, pMin, pMax);
-        pToCenter = p.distSqr(center); //squared distance
-        if(pToCenter < r*r) return boxInclude;
+        // p = pointFarthestToCenter(center, pMin, pMax);
+        // pToCenter = p.distSqr(center); //squared distance
+        // if(pToCenter < r*r) return boxInclude;
         return  boxOverlap;
       }
       return boxExclude;
