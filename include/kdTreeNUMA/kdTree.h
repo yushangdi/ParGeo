@@ -171,8 +171,8 @@ namespace pargeo::kdTreeNUMA
 
       // baseT::items = allItems.cut(0, allItems.size());
       baseT::items = parlay::slice<_objT **, _objT **>(allItems_alloc, allItems_alloc+_items.size());
-      for (size_t i = 0; i < _items.size(); ++i)
-        baseT::items[i] = &_items[i];
+      parlay::parallel_for(0, _items.size(), [&](size_t i)
+                           { baseT::items[i] = &_items[i]; });        
 
       baseT::resetId();
       if (baseT::size() > 2000)
