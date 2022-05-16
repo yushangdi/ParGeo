@@ -107,7 +107,7 @@ namespace pargeo::kdTreeNUMA
   class tree : public node<_dim, _objT>
   {
 
-  protected:
+  public:
     using baseT = node<_dim, _objT>;
 
     // parlay::slice<_objT **, _objT **> allItems; //why allitems is a pointer
@@ -116,7 +116,6 @@ namespace pargeo::kdTreeNUMA
     bool numa = false;
     _objT* items_begin;
 
-  public:
     node<_dim, _objT> *get_space_ptr(){return space;}
     tree(parlay::slice<_objT *, _objT *> _items,
          typename baseT::intT leafSize = 16)
@@ -211,6 +210,25 @@ namespace pargeo::kdTreeNUMA
       parlay::parallel_for(0, 2 * _items.size() - 1, [&](size_t i){
         space[i] = node<_dim, _objT>(tree0->space[i], tree0->space, space, tree0->allItems_alloc, allItems_alloc);
       });
+
+    }
+
+    // orderedPoints: will store the points in the kd-tree order
+    // map: will store the original location relative the original items_begin of the new ith point
+    void reorderPoints(parlay::slice<_objT *, _objT *> orderedPoints, parlay::slice<int *, int *> ordermap, bool change_pointer){ //check if the array is copied
+      if(!change_pointer){
+        parlay::parallel_for(0, baseT::items.size(), [&](size_t i){
+          orderedPoints[i] = *baseT::items[i]; 
+          ordermap[i] = baseT::items[i] - items_begin;
+        });
+      }else{
+        parlay::parallel_for(0, baseT::items.size(), [&](size_t i){
+          orderedPoints[i] = *baseT::items[i];
+          ordermap[i] = baseT::items[i] - items_begin;
+          baseT::items[i] = &orderedPoints[i];
+        });
+        items_begin = orderedPoints.begin();
+      }
 
     }
 

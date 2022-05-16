@@ -86,7 +86,7 @@ namespace pargeo::kdTreeNUMA
       { // todo check
         if (ptr < k)
           throw std::runtime_error("Error, sorting kbuffer without enough k.");
-        parlay::sort(buf.cut(0, k));
+        parlay::sort_inplace(buf.cut(0, k));
       }
 
       void insert(elem<T> t_elem)
@@ -107,7 +107,10 @@ namespace pargeo::kdTreeNUMA
 
       inline size_t size() {return ptr;}
 
-      inline double back() {return max_cost;}
+      inline double back() {
+        if(ptr<k){return std::numeric_limits<double>::max();}
+        return max_cost;
+      }
 
     };
   }
@@ -197,9 +200,14 @@ namespace pargeo::kdTreeNUMA
   }
 
   template <int dim, class objT>
-  parlay::sequence<size_t> batchKnn2(parlay::slice<objT *, objT *> queries,
+  void batchKnn2(parlay::slice<objT *, objT *> queries,
                                     size_t k,
-                                    node<dim, objT> *tree,
+                                    tree<dim, objT> *tree,
+                                    parlay::slice<size_t *, size_t *> idx,
+                                    parlay::slice<int *, int *> ordermap, //only used when shuffle search or shuffle tree is true
+                                    parlay::slice<int *, int *> treemap, //only used when shuffle search or shuffle tree is true
+                                    bool shuffle_search = false,
+                                    bool shuffle_tree = false,
                                     bool sorted=false)
   {
     using nodeT = node<dim, objT>;
@@ -210,22 +218,24 @@ namespace pargeo::kdTreeNUMA
       tree = build<dim, objT>(queries, true);
     }
     auto out = parlay::sequence<knnBuf::elem<objT *>>(2 * k * queries.size());
-    auto idx = parlay::sequence<size_t>(k * queries.size());
+    // auto idx = parlay::sequence<size_t>(k * queries.size());
     parlay::parallel_for(0, queries.size(), [&](size_t i)
-                         {
-                           knnBuf::buffer buf = knnBuf::buffer<objT *>(k, out.cut(i * 2 * k, (i + 1) * 2 * k));
-                           knnHelper2<dim, nodeT, objT>(tree, queries[i], buf);
-                           buf.keepK();
-                           if (sorted)
-                             buf.sort();
-                           for (size_t j = 0; j < k; ++j)
-                           {
-                             idx[i * k + j] = buf[j].entry - queries.begin();
-                           }
-                         });
+      {
+        knnBuf::buffer buf = knnBuf::buffer<objT *>(k, out.cut(i * 2 * k, (i + 1) * 2 * k));
+        knnHelper2<dim, nodeT, objT>(tree, queries[i], buf);
+        buf.keepK();
+        if (sorted){buf.sort();}
+        size_t idx_i = shuffle_search  ? ordermap[i] : i;
+        // size_t idx_i = queries[i].attribute;
+        for (size_t j = 0; j < k; ++j){
+          size_t result_id = buf[j].entry - tree->items_begin;
+          result_id = shuffle_tree ? treemap[result_id] : result_id;
+          idx[idx_i * k + j] = result_id;
+        }
+      });
     if (freeTree)
       free(tree);
-    return idx;
+    // return idx;
   }
 
   template <int dim, typename nodeT, typename objT>
@@ -332,6 +342,7 @@ namespace pargeo::kdTreeNUMA
     }
   }
 
+  // the tree->items have to be the same as queries
   template <int dim, class objT>
   parlay::sequence<size_t> batchKnn(parlay::slice<objT *, objT *> queries,
                                     size_t k,
@@ -352,8 +363,9 @@ namespace pargeo::kdTreeNUMA
                            knnBuf::buffer buf = knnBuf::buffer<objT *>(k, out.cut(i * 2 * k, (i + 1) * 2 * k));
                            knnHelper<dim, nodeT, objT>(tree, queries[i], buf);
                            buf.keepK();
-                           if (sorted)
-                             buf.sort();
+                           if (sorted){
+                             buf.sort();}
+                             
                            for (size_t j = 0; j < k; ++j)
                            {
                              idx[i * k + j] = buf[j].entry - queries.begin();

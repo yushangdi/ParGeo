@@ -127,6 +127,9 @@ namespace pargeo {
   using point = _point<dim, double, double, _empty>;
 
   template<int dim>
+  using ipoint = _point<dim, double, double, int>;
+
+  template<int dim>
   using fpoint = _point<dim, float, float, _empty>;
 
   template<int dim>
