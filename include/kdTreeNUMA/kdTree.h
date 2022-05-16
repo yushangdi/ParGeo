@@ -425,6 +425,15 @@ namespace pargeo::kdTreeNUMA
         return boxOverlap;
     }
 
+    inline pointT pointFarthestToCenter(pointT center, pointT pMin, pointT pMax) {
+      pointT p;
+      for (int d = 0; d < dim; ++ d) {
+        floatT mid = (pMin[d]+pMax[d]) / 2.0;
+        p[d] = mid > center[d]? pMax[d] : pMin[d];
+      }
+      return p;
+    }
+
     //find the point of rectangle that is the closest to the circle' center
     inline pointT pointClosestToCenter(pointT center, pointT pMin, pointT pMax) {
       pointT p;
@@ -437,7 +446,12 @@ namespace pargeo::kdTreeNUMA
     inline int boxBallCompare(pointT center, double r, pointT pMin, pointT pMax) {
       pointT p = pointClosestToCenter(center, pMin, pMax);
       double pToCenter = p.distSqr(center); //squared distance
-      if(pToCenter <= r*r) return  boxOverlap;
+      if(pToCenter <= r*r){
+        p = pointFarthestToCenter(center, pMin, pMax);
+        pToCenter = p.distSqr(center); //squared distance
+        if(pToCenter < r*r) return boxInclude;
+        return  boxOverlap;
+      }
       return boxExclude;
     }
 

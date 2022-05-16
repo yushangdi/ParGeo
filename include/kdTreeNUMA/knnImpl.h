@@ -125,6 +125,14 @@ namespace pargeo::kdTreeNUMA
     {
       return;
     }
+    else if (relation == tree->boxInclude)
+    {
+      for (size_t i = 0; i < tree->size(); ++i)
+      {
+        objT *p = tree->getItem(i);
+        out.insert(knnBuf::elem(q.dist(*p), p));
+      }
+    }
     else
     { // intersect
       if (tree->isLeaf())
