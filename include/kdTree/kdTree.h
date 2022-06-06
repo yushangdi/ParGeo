@@ -31,351 +31,382 @@ namespace pargeo::kdTree
 
 
 
-  /* Kd-tree node */
+	/* Kd-tree node */
+
+	template <int _dim, class _objT>
+	class node;
 
-  template <int _dim, class _objT>
-  class node;
+	/* Kd-tree construction and destruction */
 
-  /* Kd-tree construction and destruction */
+	template <int dim, class objT>
+	node<dim, objT> *build(parlay::slice<objT *, objT *> P,
+						   bool parallel = true,
+						   size_t leafSize = 16);
 
-  template <int dim, class objT>
-  node<dim, objT> *build(parlay::slice<objT *, objT *> P,
-                         bool parallel = true,
-                         size_t leafSize = 16);
+	template <int dim, class objT>
+	node<dim, objT> *build(parlay::sequence<objT> &P,
+						   bool parallel = true,
+						   size_t leafSize = 16);
+	template <int dim, class objT>
+	void del(node<dim, objT> *tree);
 
-  template <int dim, class objT>
-  node<dim, objT> *build(parlay::sequence<objT> &P,
-                         bool parallel = true,
-                         size_t leafSize = 16);
+	/* kd-tree nearest neighbor */
+//	template <int dim, class objT>
+//	objT* NearestNeighbor(objT &q, node<dim, objT> *tree);
 
-  template <int dim, class objT>
-  void del(node<dim, objT> *tree);
+	/* Kd-tree knn search */
 
-  /* Kd-tree knn search */
+	template <int dim, class objT>
+	parlay::sequence<size_t> batchKnn(parlay::sequence<objT> &queries,
+									  size_t k,
+									  node<dim, objT> *tree = nullptr,
+									  bool sorted = false);
 
-  template <int dim, class objT>
-  parlay::sequence<size_t> batchKnn(parlay::sequence<objT> &queries,
-                                    size_t k,
-                                    node<dim, objT> *tree = nullptr,
-                                    bool sorted = false);
+	/* Kd-tree range search */
 
-  /* Kd-tree range search */
+	template <int dim, typename objT>
+	parlay::sequence<objT *> rangeSearch(
+		node<dim, objT> *tree,
+		objT query,
+		double radius);
 
-  template <int dim, typename objT>
-  parlay::sequence<objT *> rangeSearch(
-      node<dim, objT> *tree,
-      objT query,
-      double radius);
+	template <int dim, typename objT, typename F>
+	void rangeTraverse(
+		node<dim, objT> *tree,
+		objT query,
+		double radius,
+		F func);
 
-  template <int dim, typename objT, typename F>
-  void rangeTraverse(
-      node<dim, objT> *tree,
-      objT query,
-      double radius,
-      F func);
+	template <int dim, typename objT>
+	parlay::sequence<objT *> orthogonalRangeSearch(
+		node<dim, objT> *tree,
+		objT query,
+		double halfLen);
 
-  template <int dim, typename objT>
-  parlay::sequence<objT *> orthogonalRangeSearch(
-      node<dim, objT> *tree,
-      objT query,
-      double halfLen);
+	template <int dim, typename objT, typename F>
+	void orthogonalRangeTraverse(
+		node<dim, objT> *tree,
+		objT query,
+		double halfLen,
+		F func);
 
-  template <int dim, typename objT, typename F>
-  void orthogonalRangeTraverse(
-      node<dim, objT> *tree,
-      objT query,
-      double halfLen,
-      F func);
+	/* Bichromatic closest pair */
 
-  /* Bichromatic closest pair */
+	template <typename nodeT>
+	std::tuple<typename nodeT::objT *,
+			   typename nodeT::objT *,
+			   typename nodeT::objT::floatT>
+	bichromaticClosestPair(nodeT *n1, nodeT *n2);
 
-  template <typename nodeT>
-  std::tuple<typename nodeT::objT *,
-             typename nodeT::objT *,
-             typename nodeT::objT::floatT>
-  bichromaticClosestPair(nodeT *n1, nodeT *n2);
+	/* Well-separated pair decomposition */
 
-  /* Well-separated pair decomposition */
+	template <typename nodeT>
+	struct wsp
+	{
+		nodeT *u;
+		nodeT *v;
+		wsp(nodeT *uu, nodeT *vv) : u(uu), v(vv) {}
+	};
 
-  template <typename nodeT>
-  struct wsp
-  {
-    nodeT *u;
-    nodeT *v;
-    wsp(nodeT *uu, nodeT *vv) : u(uu), v(vv) {}
-  };
+	template <int dim>
+	parlay::sequence<wsp<node<dim, point<dim>>>>
+	wellSeparatedPairDecomp(node<dim, point<dim>> *tree, double s = 2);
 
-  template <int dim>
-  parlay::sequence<wsp<node<dim, point<dim>>>>
-  wellSeparatedPairDecomp(node<dim, point<dim>> *tree, double s = 2);
 
 
+	/********* Implementations *********/
 
-  /********* Implementations *********/
+	template <int _dim, class _objT>
+	class tree : public node<_dim, _objT>
+	{
 
-  template <int _dim, class _objT>
-  class tree : public node<_dim, _objT>
-  {
+	private:
+		using baseT = node<_dim, _objT>;
 
-  private:
-    using baseT = node<_dim, _objT>;
+		parlay::sequence<_objT *> *allItems;
+		node<_dim, _objT> *space;
 
-    parlay::sequence<_objT *> *allItems;
-    node<_dim, _objT> *space;
+	public:
+		tree(parlay::slice<_objT *, _objT *> _items,
+			 typename baseT::intT leafSize = 16)
+			{
 
-  public:
-    tree(parlay::slice<_objT *, _objT *> _items,
-         typename baseT::intT leafSize = 16)
-    {
+				typedef tree<_dim, _objT> treeT;
+				typedef node<_dim, _objT> nodeT;
 
-      typedef tree<_dim, _objT> treeT;
-      typedef node<_dim, _objT> nodeT;
+				// allocate space for children
+				space = (nodeT *)malloc(sizeof(nodeT) * (2 * _items.size() - 1));
 
-      // allocate space for children
-      space = (nodeT *)malloc(sizeof(nodeT) * (2 * _items.size() - 1));
+				// allocate space for a copy of the items
+				allItems = new parlay::sequence<_objT *>(_items.size());
 
-      // allocate space for a copy of the items
-      allItems = new parlay::sequence<_objT *>(_items.size());
+				for (size_t i = 0; i < _items.size(); ++i)
+					allItems->at(i) = &_items[i];
 
-      for (size_t i = 0; i < _items.size(); ++i)
-        allItems->at(i) = &_items[i];
+				// construct self
 
-      // construct self
+				baseT::items = allItems->cut(0, allItems->size());
 
-      baseT::items = allItems->cut(0, allItems->size());
+				baseT::resetId();
+				baseT::nbMax = _objT::max_point();
+				baseT::nbMin = _objT::min_point();
+				baseT::constructSerial(space, leafSize);
+			}
 
-      baseT::resetId();
-      baseT::constructSerial(space, leafSize);
-    }
+		tree(parlay::slice<_objT *, _objT *> _items,
+			 parlay::slice<bool *, bool *> flags,
+			 typename baseT::intT leafSize = 16)
+			{
 
-    tree(parlay::slice<_objT *, _objT *> _items,
-         parlay::slice<bool *, bool *> flags,
-         typename baseT::intT leafSize = 16)
-    {
+				typedef tree<_dim, _objT> treeT;
+				typedef node<_dim, _objT> nodeT;
 
-      typedef tree<_dim, _objT> treeT;
-      typedef node<_dim, _objT> nodeT;
+				// allocate space for children
+				space = (nodeT *)malloc(sizeof(nodeT) * (2 * _items.size() - 1));
 
-      // allocate space for children
-      space = (nodeT *)malloc(sizeof(nodeT) * (2 * _items.size() - 1));
+				// allocate space for a copy of the items
+				allItems = new parlay::sequence<_objT *>(_items.size());
 
-      // allocate space for a copy of the items
-      allItems = new parlay::sequence<_objT *>(_items.size());
+				parlay::parallel_for(0, _items.size(), [&](size_t i)
+														   { allItems->at(i) = &_items[i]; });
 
-      parlay::parallel_for(0, _items.size(), [&](size_t i)
-                           { allItems->at(i) = &_items[i]; });
+				// construct self
 
-      // construct self
+				baseT::items = allItems->cut(0, allItems->size());
 
-      baseT::items = allItems->cut(0, allItems->size());
+				baseT::resetId();
+				baseT::nbMax = _objT::max_point();
+				baseT::nbMin = _objT::min_point();
+	
+				if (baseT::size() > 2000)
+					baseT::constructParallel(space, flags, leafSize);
+				else
+					baseT::constructSerial(space, leafSize);
+			}
 
-      baseT::resetId();
-      if (baseT::size() > 2000)
-        baseT::constructParallel(space, flags, leafSize);
-      else
-        baseT::constructSerial(space, leafSize);
-    }
+		~tree()
+			{
+				free(space);
+				delete allItems;
+			}
+	};
 
-    ~tree()
-    {
-      free(space);
-      delete allItems;
-    }
-  };
+	template <int _dim, class _objT>
+	class node
+	{
 
-  template <int _dim, class _objT>
-  class node
-  {
+	protected:
+		using intT = int;
 
-  protected:
-    using intT = int;
+		using floatT = double;
 
-    using floatT = double;
+		using pointT = _objT;
 
-    using pointT = _objT;
+		using nodeT = node<_dim, _objT>;
 
-    using nodeT = node<_dim, _objT>;
+		intT id;
 
-    intT id;
+		int k;
 
-    int k;
+		pointT pMin, pMax, nbMin, nbMax;
 
-    pointT pMin, pMax;
+		nodeT *left;
 
-    nodeT *left;
+		nodeT *right;
 
-    nodeT *right;
+		nodeT *sib;
 
-    nodeT *sib;
+		parlay::slice<_objT **, _objT **> items;
 
-    parlay::slice<_objT **, _objT **> items;
+		inline void cutLess(pointT &_nbMax, int k, double xM){
+			_nbMax[k] = std::min(_nbMax[k], xM);
+		}
 
-    inline void minCoords(pointT &_pMin, pointT &p)
-    {
-      for (int i = 0; i < dim; ++i)
-        _pMin[i] = std::min(_pMin[i], p[i]);
-    }
+		inline void cutMore(pointT &_nbMin, int k, double xM){
+			_nbMin[k] = std::max(_nbMin[k], xM);
+		}
 
-    inline void maxCoords(pointT &_pMax, pointT &p)
-    {
-      for (int i = 0; i < dim; ++i)
-        _pMax[i] = std::max(_pMax[i], p[i]);
-    }
 
-    void boundingBoxSerial();
+		inline void minCoords(pointT &_pMin, pointT &p)
+			{
+				for (int i = 0; i < dim; ++i)
+					_pMin[i] = std::min(_pMin[i], p[i]);
+			}
 
-    void boundingBoxParallel();
+		inline void maxCoords(pointT &_pMax, pointT &p)
+			{
+				for (int i = 0; i < dim; ++i)
+					_pMax[i] = std::max(_pMax[i], p[i]);
+			}
 
-    intT splitItemSerial(floatT xM);
+		void boundingBoxSerial();
 
-    inline bool itemInBox(pointT pMin1, pointT pMax1, _objT *item)
-    {
-      for (int i = 0; i < _dim; ++i)
-      {
-        if (pMax1[i] < item->at(i) || pMin1[i] > item->at(i))
-          return false;
-      }
-      return true;
-    }
+		void boundingBoxParallel();
 
-    inline intT findWidest()
-    {
-      floatT xM = -1;
-      for (int kk = 0; kk < _dim; ++kk)
-      {
-        if (pMax[kk] - pMin[kk] > xM)
-        {
-          xM = pMax[kk] - pMin[kk];
-          k = kk;
-        }
-      }
-      return k;
-    }
+		intT splitItemSerial(floatT xM);
 
-    void constructSerial(nodeT *space, intT leafSize);
+		inline bool itemInBox(pointT pMin1, pointT pMax1, _objT *item)
+			{
+				for (int i = 0; i < _dim; ++i)
+				{
+					if (pMax1[i] < item->at(i) || pMin1[i] > item->at(i))
+						return false;
+				}
+				return true;
+			}
 
-    void constructParallel(nodeT *space, parlay::slice<bool *, bool *> flags, intT leafSize);
+		inline intT findWidest()
+			{
+				floatT xM = -1;
+				for (int kk = 0; kk < _dim; ++kk)
+				{
+					if (pMax[kk] - pMin[kk] > xM)
+					{
+						xM = pMax[kk] - pMin[kk];
+						k = kk;
+					}
+				}
+				return k;
+			}
 
-  public:
-    using objT = _objT;
+		void constructSerial(nodeT *space, intT leafSize);
 
-    static constexpr int dim = _dim;
+		void constructParallel(nodeT *space, parlay::slice<bool *, bool *> flags, intT leafSize);
 
-    inline nodeT *L() { return left; }
+	public:
+		using objT = _objT;
 
-    inline nodeT *R() { return right; }
+		static constexpr int dim = _dim;
 
-    inline nodeT *siblin() { return sib; }
+		inline nodeT *L() { return left; }
 
-    inline intT size() { return items.size(); }
+		inline nodeT *R() { return right; }
 
-    inline _objT *operator[](intT i) { return items[i]; }
+		inline nodeT *siblin() { return sib; }
 
-    inline _objT *at(intT i) { return items[i]; }
+		inline intT size() { return items.size(); }
 
-    inline bool isLeaf() { return !left; }
+		inline _objT *operator[](intT i) { return items[i]; }
 
-    inline _objT *getItem(intT i) { return items[i]; }
+		inline _objT *at(intT i) { return items[i]; }
 
-    inline pointT getMax() { return pMax; }
+		inline bool isLeaf() { return !left; }
 
-    inline pointT getMin() { return pMin; }
+		inline _objT *getItem(intT i) { return items[i]; }
 
-    inline floatT getMax(int i) { return pMax[i]; }
+		inline pointT getMax() { return pMax; }
 
-    inline floatT getMin(int i) { return pMin[i]; }
+		inline pointT getMin() { return pMin; }
 
-    // inline void setEmpty() { id = -2; }
+		inline pointT getNBMax() { return nbMax; }
 
-    // inline bool isEmpty() { return id == -2; }
+		inline pointT getNBMin() { return nbMin; }
 
-    inline bool hasId()
-    {
-      return id != -1;
-    }
+		inline floatT getMax(int i) { return pMax[i]; }
 
-    inline void setId(intT _id)
-    {
-      id = _id;
-    }
+		inline floatT getMin(int i) { return pMin[i]; }
 
-    inline void resetId()
-    {
-      id = -1;
-    }
+		// inline void setEmpty() { id = -2; }
 
-    inline intT getId()
-    {
-      return id;
-    }
+		// inline bool isEmpty() { return id == -2; }
 
-    static const int boxInclude = 0;
+		inline bool hasId()
+			{
+				return id != -1;
+			}
 
-    static const int boxOverlap = 1;
+		inline void setId(intT _id)
+			{
+				id = _id;
+			}
 
-    static const int boxExclude = 2;
+		inline void resetId()
+			{
+				id = -1;
+			}
 
-    inline floatT diag()
-    {
-      floatT result = 0;
-      for (int d = 0; d < _dim; ++d)
-      {
-        floatT tmp = pMax[d] - pMin[d];
-        result += tmp * tmp;
-      }
-      return sqrt(result);
-    }
+		inline intT getId()
+			{
+				return id;
+			}
 
-    inline floatT lMax()
-    {
-      floatT myMax = 0;
-      for (int d = 0; d < _dim; ++d)
-      {
-        floatT thisMax = pMax[d] - pMin[d];
-        if (thisMax > myMax)
-        {
-          myMax = thisMax;
-        }
-      }
-      return myMax;
-    }
+		static const int boxInclude = 0;
 
-    inline int boxCompare(pointT pMin1, pointT pMax1, pointT pMin2, pointT pMax2)
-    {
-      bool exclude = false;
-      bool include = true; //1 include 2
-      for (int i = 0; i < _dim; ++i)
-      {
-        if (pMax1[i] < pMin2[i] || pMin1[i] > pMax2[i])
-          exclude = true;
-        if (pMax1[i] < pMax2[i] || pMin1[i] > pMin2[i])
-          include = false;
-      }
-      if (exclude)
-        return boxExclude;
-      else if (include)
-        return boxInclude;
-      else
-        return boxOverlap;
-    }
+		static const int boxOverlap = 1;
 
-    node();
+		static const int boxExclude = 2;
 
-    node(parlay::slice<_objT **, _objT **> itemss,
-         intT nn,
-         nodeT *space,
-         parlay::slice<bool *, bool *> flags,
-         intT leafSize = 16);
+		inline floatT diag()
+			{
+				floatT result = 0;
+				for (int d = 0; d < _dim; ++d)
+				{
+					floatT tmp = pMax[d] - pMin[d];
+					result += tmp * tmp;
+				}
+				return sqrt(result);
+			}
 
-    node(parlay::slice<_objT **, _objT **> itemss,
-         intT nn,
-         nodeT *space,
-         intT leafSize = 16);
+		inline floatT lMax()
+			{
+				floatT myMax = 0;
+				for (int d = 0; d < _dim; ++d)
+				{
+					floatT thisMax = pMax[d] - pMin[d];
+					if (thisMax > myMax)
+					{
+						myMax = thisMax;
+					}
+				}
+				return myMax;
+			}
 
-    virtual ~node()
-    {
-    }
-  };
+		inline int boxCompare(pointT pMin1, pointT pMax1, pointT pMin2, pointT pMax2)
+			{
+				bool exclude = false;
+				bool include = true; //1 include 2
+				for (int i = 0; i < _dim; ++i)
+				{
+					if (pMax1[i] < pMin2[i] || pMin1[i] > pMax2[i])
+						exclude = true;
+					if (pMax1[i] < pMax2[i] || pMin1[i] > pMin2[i])
+						include = false;
+				}
+				if (exclude)
+					return boxExclude;
+				else if (include)
+					return boxInclude;
+				else
+					return boxOverlap;
+			}
+
+		node();
+
+		node(parlay::slice<_objT **, _objT **> itemss,
+			 intT nn,
+			 nodeT *space,
+			 parlay::slice<bool *, bool *> flags, _objT nbMin_, _objT nbMax_, intT leafSize=16);
+
+		node(parlay::slice<_objT **, _objT **> itemss,
+			 intT nn,
+			 nodeT *space,
+			 parlay::slice<bool *, bool *> flags, intT leafSize=16);
+
+		node(parlay::slice<_objT **, _objT **> itemss,
+			 intT nn,
+			 nodeT *space,
+			 _objT nbMin_, _objT nbMax_, intT leafSize = 16);
+
+		node(parlay::slice<_objT **, _objT **> itemss,
+			 intT nn,
+			 nodeT *space,
+			 intT leafSize = 16);
+
+
+		virtual ~node()
+			{
+			}
+	};
 
 } // End namespace pargeo::kdTree
 

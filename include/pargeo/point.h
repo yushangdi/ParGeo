@@ -102,6 +102,22 @@ namespace pargeo {
       return a.attribute < b.attribute;
     }
 
+	static bool attCompRev(_point a, _point b){
+      return b.attribute < a.attribute;
+    }
+
+	  static _point max_point(){
+		  _point ret;
+		  for(int i=0;i<dim;++i) ret[i]=std::numeric_limits<_tData>::max()-1;
+		  return ret;
+	  }
+
+	  static _point min_point(){
+		  _point ret;
+		  for(int i=0;i<dim;++i) ret[i]=std::numeric_limits<_tData>::lowest()+1;
+		  return ret;
+	  }
+
     friend bool operator==(_point a, _point b) {
       for (int ii=0; ii<dim; ++ii) {
 	     if (a[ii] != b[ii]) return false;}
