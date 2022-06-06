@@ -171,6 +171,7 @@ namespace pargeo::kdTree
 		{
 			intT k = findWidest();
 			floatT xM = (pMax[k] + pMin[k]) / 2;
+			mCut = xM;
 
 			// Split items by xM (serial)
 			intT median = splitItemSerial(xM);
@@ -186,15 +187,8 @@ namespace pargeo::kdTree
 
 			// Recursive construction
 
-			_objT LnbMax = nbMax;
-			_objT LnbMin = nbMin;
-			_objT RnbMax = nbMax;
-			_objT RnbMin = nbMin;
-			cutLess(LnbMax, k, xM);
-			cutMore(RnbMin, k, xM);
-			
-			space[0] = nodeT(items.cut(0, median), median, space + 1, LnbMin, LnbMax, leafSize);
-			space[2 * median - 1] = nodeT(items.cut(median, size()), size() - median, space + 2 * median, RnbMin, RnbMax, leafSize);
+			space[0] = nodeT(items.cut(0, median), median, space + 1, leafSize);
+			space[2 * median - 1] = nodeT(items.cut(median, size()), size() - median, space + 2 * median, leafSize);
 			left = space;
 			right = space + 2 * median - 1;
 			left->sib = right;
@@ -217,7 +211,7 @@ namespace pargeo::kdTree
 		{
 			intT k = findWidest();
 			floatT xM = (pMax[k] + pMin[k]) / 2;
-
+			mCut = xM;
 			// Split items by xM in dim k (parallel)
 			parlay::parallel_for(0, size(),
 								 [&](intT i)
@@ -243,18 +237,11 @@ namespace pargeo::kdTree
 			// }
 
 			// Recursive construction
-			_objT LnbMax = nbMax;
-			_objT LnbMin = nbMin;
-			_objT RnbMax = nbMax;
-			_objT RnbMin = nbMin;
-			cutLess(LnbMax, k, xM);
-			cutMore(RnbMin, k, xM);
-			
 			parlay::par_do(
 				[&]()
-					{ space[0] = nodeT(items.cut(0, median), median, space + 1, flags.cut(0, median), LnbMin, LnbMax, leafSize); },
+					{ space[0] = nodeT(items.cut(0, median), median, space + 1, flags.cut(0, median), leafSize); },
 				[&]()
-					{ space[2 * median - 1] = nodeT(items.cut(median, size()), size() - median, space + 2 * median, flags.cut(median, size()),RnbMin, RnbMax, leafSize); });
+					{ space[2 * median - 1] = nodeT(items.cut(median, size()), size() - median, space + 2 * median, flags.cut(median, size()), leafSize); });
 			left = space;
 			right = space + 2 * median - 1;
 			left->sib = right;
@@ -272,7 +259,7 @@ namespace pargeo::kdTree
 							intT nn,
 							nodeT *space,
 							parlay::slice<bool *, bool *> flags,
-							_objT nbMin_, _objT nbMax_, intT leafSize) : items(itemss), nbMin(nbMin_), nbMax(nbMax_)
+							intT leafSize) : items(itemss)
 	{
 		resetId();
 		if (size() > 2000)
@@ -285,7 +272,7 @@ namespace pargeo::kdTree
 	node<_dim, _objT>::node(parlay::slice<_objT **, _objT **> itemss,
 							intT nn,
 							nodeT *space,
-							_objT nbMin_, _objT nbMax_, intT leafSize) : items(itemss), nbMin(nbMin_), nbMax(nbMax_)
+							intT leafSize) : items(itemss)
 	{
 		resetId();
 		constructSerial(space, leafSize);

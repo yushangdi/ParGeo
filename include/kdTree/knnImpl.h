@@ -49,37 +49,33 @@ namespace pargeo::kdTree
 		int relation = tree->boxCompare(tree->getMin(), tree->getMax(),
 										point<dim>(q.coords()),
 										point<dim>(q.coords()));
-//		std::cout<<q[0]<<" "<<q[1]<<" : "<<tree->getNBMin()[0]<<" "<<tree->getNBMin()[1]<<"; "<<tree->getNBMax()[0]<<" "<<tree->getNBMax()[1]<<std::endl;
-		if (relation == tree->boxExclude)
+
+		if (tree->isLeaf())
 		{
-			return;
+			// basecase
+			for (size_t i = 0; i < tree->size(); ++i)
+			{
+				objT *p = tree->getItem(i);
+				double dist = q.dist(*p);
+				if(dist < radius){
+					radius = dist;
+					out = p;
+				}
+			}
 		}
 		else
 		{
-			if (tree->isLeaf())
-			{
-				// basecase
-				for (size_t i = 0; i < tree->size(); ++i)
-				{
-					objT *p = tree->getItem(i);
-					double dist = q.dist(*p);
-					if(dist < radius){
-						radius = dist;
-						out = p;
-					}
-				}
-			}
-			else
-			{
+			if(q[tree->getCutDim()] < tree->getCutPos())
 				knnHelper<dim, nodeT, objT>(tree->L(), q, radius, out);
+			else
 				knnHelper<dim, nodeT, objT>(tree->R(), q, radius, out);
-			}
 		}
-
+		
 		if(tree->siblin() != NULL)
 		{
 			knnRange<dim, nodeT, objT>(tree->siblin(), q, radius, out);
 		}
+		std::cout<<q[0]<<" "<<q[1]<<" : "<<radius<<std::endl;
 	}
 	
 	
@@ -89,11 +85,11 @@ namespace pargeo::kdTree
 						double &radius, objT *&out)
 	{
 		int relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
-		if (relation == tree->boxExclude)
+		if (relation == tree->boxExclude) // note that the new knnRangeHelper includes the functionality of knnHelper
 		{
 			return;
 		}
-		else if (relation == tree->boxInclude) // first includes second, target region includes tree region
+		else
 		{ // use threshold to decide going down vs bruteforce
 			if (tree->isLeaf())
 			{
@@ -109,28 +105,13 @@ namespace pargeo::kdTree
 			}
 			else
 			{
-				knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
-				knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
-			}
-		}
-		else
-		{ // intersect
-			if (tree->isLeaf())
-			{
-				for(size_t i=0; i<tree->size(); ++i)
-				{
-					objT *p = tree->getItem(i);
-					double dist = q.dist(*p);
-					if(dist < radius){
-						radius = dist;
-						out = p;
-					}
+				if(q[tree->getCutDim()] < tree->getCutPos()){
+					knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
+					knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+				}else{
+					knnRangeHelper<dim, nodeT, objT>(tree->R(), q, qMin, qMax, radius, out);
+					knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
 				}
-			}
-			else
-			{
-				knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
-				knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
 			}
 		}
 	}
@@ -150,12 +131,9 @@ namespace pargeo::kdTree
 
 	
 	template <int dim, class objT>
-	objT* NearestNeighbor(objT &q, node<dim, objT> *tree){
+	void NearestNeighbor(objT &q, node<dim, objT> *tree, double& radius, objT *&out){
 		using nodeT = node<dim, objT>;
-		double radius = std::numeric_limits<double>::max()/2;
-		objT* out = NULL;
-		knnHelper<dim, nodeT, objT>(tree, q, radius, out);
-		return out;
+		knnRange<dim, nodeT, objT>(tree, q, radius, out);
 	}
 
 

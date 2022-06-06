@@ -51,8 +51,8 @@ namespace pargeo::kdTree
 	void del(node<dim, objT> *tree);
 
 	/* kd-tree nearest neighbor */
-//	template <int dim, class objT>
-//	objT* NearestNeighbor(objT &q, node<dim, objT> *tree);
+	template <int dim, class objT>
+	void NearestNeighbor(objT &q, node<dim, objT> *tree, double& radius, objT *&out);
 
 	/* Kd-tree knn search */
 
@@ -148,8 +148,7 @@ namespace pargeo::kdTree
 				baseT::items = allItems->cut(0, allItems->size());
 
 				baseT::resetId();
-				baseT::nbMax = _objT::max_point();
-				baseT::nbMin = _objT::min_point();
+
 				baseT::constructSerial(space, leafSize);
 			}
 
@@ -175,8 +174,6 @@ namespace pargeo::kdTree
 				baseT::items = allItems->cut(0, allItems->size());
 
 				baseT::resetId();
-				baseT::nbMax = _objT::max_point();
-				baseT::nbMin = _objT::min_point();
 	
 				if (baseT::size() > 2000)
 					baseT::constructParallel(space, flags, leafSize);
@@ -208,7 +205,9 @@ namespace pargeo::kdTree
 
 		int k;
 
-		pointT pMin, pMax, nbMin, nbMax;
+		floatT mCut;
+
+		pointT pMin, pMax;
 
 		nodeT *left;
 
@@ -217,14 +216,6 @@ namespace pargeo::kdTree
 		nodeT *sib;
 
 		parlay::slice<_objT **, _objT **> items;
-
-		inline void cutLess(pointT &_nbMax, int k, double xM){
-			_nbMax[k] = std::min(_nbMax[k], xM);
-		}
-
-		inline void cutMore(pointT &_nbMin, int k, double xM){
-			_nbMin[k] = std::max(_nbMin[k], xM);
-		}
 
 
 		inline void minCoords(pointT &_pMin, pointT &p)
@@ -298,13 +289,13 @@ namespace pargeo::kdTree
 
 		inline pointT getMin() { return pMin; }
 
-		inline pointT getNBMax() { return nbMax; }
-
-		inline pointT getNBMin() { return nbMin; }
-
 		inline floatT getMax(int i) { return pMax[i]; }
 
 		inline floatT getMin(int i) { return pMin[i]; }
+
+		inline intT getCutDim() { return k; }
+
+		inline floatT getCutPos() { return mCut; }
 
 		// inline void setEmpty() { id = -2; }
 
