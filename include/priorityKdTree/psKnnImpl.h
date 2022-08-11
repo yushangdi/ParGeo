@@ -44,7 +44,7 @@ namespace pargeo::psKdTree
                       double &radius, objT *&out)
   {
     int relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
-    if (relation == tree->boxExclude || tree->empty())
+    if (relation == tree->boxExclude || tree->empty() || tree->getItem(0)->attribute >= q.attribute)
     {
       return;
     }
@@ -55,7 +55,7 @@ namespace pargeo::psKdTree
         for(size_t i=0; i<tree->size(); ++i)
         {
           objT *p = tree->getItem(i);
-          if(p)
+          if(p->attribute < q.attribute)
           {
             double dist = q.dist(*p);
             if(dist < radius)
@@ -79,7 +79,7 @@ namespace pargeo::psKdTree
         for(size_t i=0; i<tree->size(); ++i)
         {
           objT *p = tree->getItem(i);
-          if(p)
+          if(p->attribute < q.attribute)
           {
             double dist = q.dist(*p);
             if(dist < radius)
@@ -112,7 +112,7 @@ namespace pargeo::psKdTree
   }
 
   template <int dim, class objT>
-  objT* tree<dim, objT>::NearestNeighbor(size_t id) 
+  objT* tree<dim, objT>::NearestNeighborBounded(size_t id) 
   {
     typedef node<dim, objT> nodeT;
     int loc = id2loc->at(id);
@@ -121,26 +121,32 @@ namespace pargeo::psKdTree
     double radius = std::numeric_limits<double>::max()/2;
     objT* out = NULL;
 
-    if(!cur->empty()){
+    if(!cur->empty() && cur->getItem(0)->attribute < q.attribute){
       for (size_t i = 0; i < cur->size(); ++i){
         objT *p = cur->getItem(i);
-        if(p)
-        {
-          double dist = q.dist(*p);
-          if(dist < radius)
-          {
-            radius = dist;
-            out = p;
-          }
-        }
-      }
+		if(p->attribute < q.attribute){
+			double dist = q.dist(*p);
+			if(dist < radius){
+				radius = dist;
+				out = p;
+			}
+		}
+	  }
     }
 
-    for( ; cur->siblin() != NULL; cur = cur->parent()){
-      if(!cur->siblin()->empty()){
-        knnRange<dim, nodeT, objT>(cur->siblin(), q, radius, out);
-      }
+    for( ; cur != NULL; cur = cur->parent()){
+		if(cur->getItem(0)->attribute >= q.attribute) continue;
+		objT *p = cur->getItem(0);
+		double dist = q.dist(*p);
+		if(dist < radius){
+			radius = dist;
+			out = p;
+		}
+		if(cur->siblin()!=NULL && !cur->siblin()->empty() && cur->siblin()->getItem(0)->attribute < q.attribute){
+			knnRange<dim, nodeT, objT>(cur->siblin(), q, radius, out);
+		}
     }
+	
     return out;
   }
 

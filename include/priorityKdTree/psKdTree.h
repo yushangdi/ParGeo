@@ -131,7 +131,7 @@ namespace pargeo::psKdTree
     }
 
 
-    _objT* NearestNeighbor(size_t id);
+    _objT* NearestNeighborBounded(size_t id);
 
     void print_data(){
       for(size_t i=0;i<allItems->size();i++){
@@ -192,8 +192,6 @@ namespace pargeo::psKdTree
     nodeT *sib;
 
     nodeT *par;
-
-    bool active;
 
     parlay::slice<_objT **, _objT **> items;
 
@@ -258,11 +256,7 @@ namespace pargeo::psKdTree
 
     inline nodeT *siblin() { return sib; }
 
-    inline void activate() { active = true; }
-
-    inline void deactivate() { active = false; }
-
-    inline bool empty() { return !active; }
+	inline bool empty() { return items.size()==0; }
 
     inline intT size() { return items.size(); }
 

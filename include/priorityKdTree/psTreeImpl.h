@@ -142,7 +142,6 @@ namespace pargeo::psKdTree
         if (lPt < rPt)
         {
           std::swap(items[lPt], items[rPt]);
-          // std::swap(itemActive[lPt], itemActive[rPt]);
           // std::swap(itemLeaf[lPt], itemLeaf[rPt]);
           rPt--;
         }
@@ -162,8 +161,9 @@ namespace pargeo::psKdTree
   void node<_dim, _objT>::initSerial()
   {
     par = NULL;
+	itemLeaf[0]=this;
     if(!left && !right){
-      for(size_t i=0;i<size();i++)
+      for(size_t i=1;i<size();i++)
         itemLeaf[i]=this;
     }else{
       left->initSerial();
@@ -177,8 +177,9 @@ namespace pargeo::psKdTree
   void node<_dim, _objT>::initParallel()
   {
     par = NULL;
+	itemLeaf[0]=this;
     if(!left && !right){
-      parlay::parallel_for(0, size(), [&](size_t i){
+      parlay::parallel_for(1, size(), [&](size_t i){
         itemLeaf[i]=this;
       });
     }else{
@@ -193,10 +194,9 @@ namespace pargeo::psKdTree
   {
     boundingBoxSerial();
     sib = NULL;
-    active = false;
 
-	for(intT i=1;i<size();i++){  // move the highest density/attribute to front
-		if(items[i]->attribute > items[0]->attribute)
+	for(intT i=1;i<size();i++){  // move the highest density/attribute to front, low attribute = high density
+		if(items[i]->attribute < items[0]->attribute)
 			std::swap(items[0], items[i]);
 	}
 	
@@ -233,12 +233,11 @@ namespace pargeo::psKdTree
   {
 	boundingBoxParallel();
     sib = NULL;
-    active = false;
 
 	auto attComp = [](_objT* item1, _objT* item2){
 		return item1->attribute < item2->attribute;
 	};
-	auto ptrMax = parlay::max_element(items, attComp);
+	auto ptrMax = parlay::min_element(items, attComp);
 
 	if(items.begin() != ptrMax)
 		std::swap(items[0], *ptrMax);
