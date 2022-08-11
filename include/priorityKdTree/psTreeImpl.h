@@ -237,12 +237,13 @@ namespace pargeo::psKdTree
 	auto attComp = [](_objT* item1, _objT* item2){
 		return item1->attribute < item2->attribute;
 	};
-	auto ptrMax = parlay::min_element(items, attComp);
+	auto ptrMax = parlay::min_element(items.cut(0,size()), attComp);
+
+	
 
 	if(items.begin() != ptrMax)
 		std::swap(items[0], *ptrMax);
-	
-	
+
     if (size() <= leafSize)
     {
       left = NULL;
@@ -266,7 +267,7 @@ namespace pargeo::psKdTree
                            });
       auto mySplit = kdTreeInternal::split_two(items.cut(1,size()), flags.cut(1,size()));
       auto splited = mySplit.first;
-      intT median = mySplit.second;
+      intT median = mySplit.second+1;
       parlay::parallel_for(1, size(), [&](intT i)
                            { items[i] = splited[i-1]; }); // Copy back
 
@@ -280,11 +281,12 @@ namespace pargeo::psKdTree
       // }
 
       // Recursive construction
-      parlay::par_do([&]()
+	  parlay::par_do([&]()
                      { space[0] = nodeT(items.cut(1, median), itemLeaf.cut(1, median), median-1, space + 1, flags.cut(1, median), leafSize); },
                      [&]()
                      { space[2 * median - 1] = nodeT(items.cut(median, size()), itemLeaf.cut(median, size()), size() - median, space + 2 * median, flags.cut(median, size()), leafSize); });
-      left = space;
+	  
+	  left = space;
       right = space + 2 * median - 1;
       left->sib = right;
       right->sib = left;
