@@ -68,6 +68,12 @@ namespace pargeo::psKdTree
       }
       else
       {
+		objT *p = tree->getItem(0);
+		double dist = q.dist(*p);
+		if(dist < radius){
+			radius = dist;
+			out = p;
+		}
         knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
         knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
       }
@@ -92,6 +98,12 @@ namespace pargeo::psKdTree
       }
       else
       {
+		objT *p = tree->getItem(0);
+		double dist = q.dist(*p);
+		if(dist < radius){
+			radius = dist;
+			out = p;
+		}
         knnRangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, out);
         knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
       }
