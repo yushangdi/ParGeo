@@ -147,12 +147,13 @@ namespace pargeo::psKdTree
     }
 
     for( ; cur != NULL; cur = cur->parent()){
-		if(cur->getItem(0)->attribute >= q.attribute) continue;
-		objT *p = cur->getItem(0);
-		double dist = q.dist(*p);
-		if(dist < radius){
-			radius = dist;
-			out = p;
+		if(cur->getItem(0)->attribute < q.attribute){
+			objT *p = cur->getItem(0);
+			double dist = q.dist(*p);
+			if(dist < radius){
+				radius = dist;
+				out = p;
+			}
 		}
 		if(cur->siblin()!=NULL && !cur->siblin()->empty() && cur->siblin()->getItem(0)->attribute < q.attribute){
 			knnRange<dim, nodeT, objT>(cur->siblin(), q, radius, out);
