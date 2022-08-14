@@ -368,6 +368,38 @@ namespace pargeo::pdKdTree
       return myMax;
     }
 
+	inline pointT pointClosestToCenter(pointT center, pointT pMin, pointT pMax) {
+      pointT p;
+      for (int d = 0; d < dim; ++ d) {
+        p[d] = max(pMin[d], min(center[d], pMax[d]));
+      }
+      return p;
+    }
+
+    inline pointT pointFarthestFromCenter(pointT center, pointT pMin, pointT pMax){
+		pointT p;
+		for (int d = 0; d < dim; ++ d){
+			p[d] = (center[d]*2 < pMin[d]+pMax[d]) ? pMax[d] : pMin[d]; 
+		}
+		return p;
+	}
+
+    inline int boxBallCompare(pointT center, double r, pointT pMin, pointT pMax) {
+      pointT pc = pointClosestToCenter(center, pMin, pMax);
+      double pcToCenter = pc.pointDistSq(center); //squared distance
+      if(pcToCenter <= r*r) {
+		  pointT pf = pointFarthestFromCenter(center, pMin, pMax);
+		  double pfToCenter = pf.pointDistSq(center);
+		  if(pfToCenter <= r*r){
+			  return boxInclude;
+		  }else{
+			  return  boxOverlap;
+		  }
+	  }else{
+		  return boxExclude;
+	  }
+    }
+
     inline int boxCompare(pointT pMin1, pointT pMax1, pointT pMin2, pointT pMax2)
     {
       bool exclude = false;

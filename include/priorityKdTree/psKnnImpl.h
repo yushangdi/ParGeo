@@ -44,7 +44,7 @@ namespace pargeo::psKdTree
                       double &radius, objT *&out)
   {
     int relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
-    if (relation == tree->boxExclude || tree->empty() || tree->getItem(0)->attribute >= q.attribute)
+    if (relation == tree->boxExclude || tree->getItem(0)->attribute >= q.attribute)
     {
       return;
     }
@@ -133,7 +133,7 @@ namespace pargeo::psKdTree
     double radius = std::numeric_limits<double>::max()/2;
     objT* out = NULL;
 
-    if(!cur->empty() && cur->getItem(0)->attribute < q.attribute){
+    if(cur->getItem(0)->attribute < q.attribute){
       for (size_t i = 0; i < cur->size(); ++i){
         objT *p = cur->getItem(i);
 		if(p->attribute < q.attribute){
@@ -155,7 +155,7 @@ namespace pargeo::psKdTree
 				out = p;
 			}
 		}
-		if(cur->siblin()!=NULL && !cur->siblin()->empty() && cur->siblin()->getItem(0)->attribute < q.attribute){
+		if(cur->siblin()!=NULL && cur->siblin()->getItem(0)->attribute < q.attribute){
 			knnRange<dim, nodeT, objT>(cur->siblin(), q, radius, out);
 		}
     }
