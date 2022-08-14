@@ -371,7 +371,7 @@ namespace pargeo::pdKdTree
 	inline pointT pointClosestToCenter(pointT center, pointT pMin, pointT pMax) {
       pointT p;
       for (int d = 0; d < dim; ++ d) {
-        p[d] = max(pMin[d], min(center[d], pMax[d]));
+		  p[d] = std::max(pMin[d], std::min(center[d], pMax[d]));
       }
       return p;
     }
@@ -386,10 +386,10 @@ namespace pargeo::pdKdTree
 
     inline int boxBallCompare(pointT center, double r, pointT pMin, pointT pMax) {
       pointT pc = pointClosestToCenter(center, pMin, pMax);
-      double pcToCenter = pc.pointDistSq(center); //squared distance
+      double pcToCenter = pc.distSqr(center); //squared distance
       if(pcToCenter <= r*r) {
 		  pointT pf = pointFarthestFromCenter(center, pMin, pMax);
-		  double pfToCenter = pf.pointDistSq(center);
+		  double pfToCenter = pf.distSqr(center);
 		  if(pfToCenter <= r*r){
 			  return boxInclude;
 		  }else{
