@@ -63,19 +63,18 @@ namespace pargeo::kdTree
 									  bool sorted = false);
 
 	/* Kd-tree range search */
+	template <int dim, typename objT>
+	int rangeCount(
+      node<dim, objT> *tree,
+      objT query,
+      double radius);
 
 	template <int dim, typename objT>
-	parlay::sequence<objT *> rangeSearch(
-		node<dim, objT> *tree,
-		objT query,
-		double radius);
-
-	template <int dim, typename objT, typename F>
 	void rangeTraverse(
 		node<dim, objT> *tree,
-		objT query,
+		objT& query,
 		double radius,
-		F func);
+		int& counter);
 
 	template <int dim, typename objT>
 	parlay::sequence<objT *> orthogonalRangeSearch(

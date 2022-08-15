@@ -30,11 +30,10 @@
 namespace pargeo::kdTree
 {
 
-  template <int dim, typename nodeT, typename objT, typename F>
-  void rangeHelper(nodeT *tree, objT &q, point<dim> qMin, point<dim> qMax,
-                   double radius, F func)
+  template <int dim, typename nodeT, typename objT>
+  void rangeTraverse(nodeT *tree, objT &q, double radius, int &counter)
   {
-    int relation = tree->boxCompare(qMin, qMax, tree->getMin(), tree->getMax());
+	int relation = tree->boxBallCompare(q, radius, tree->getMin(), tree->getMax());
 
     if (relation == tree->boxExclude)
     {
@@ -42,12 +41,7 @@ namespace pargeo::kdTree
     }
     else if (relation == tree->boxInclude)
     {
-      for (size_t i = 0; i < tree->size(); ++i)
-      {
-        objT *p = tree->getItem(i);
-        if (p->dist(q) <= radius)
-          func(p);
-      }
+	  counter += tree->size();
     }
     else
     { // intersect
@@ -58,47 +52,17 @@ namespace pargeo::kdTree
           objT *p = tree->getItem(i);
           double dist = q.dist(*p);
           if (dist <= radius)
-            func(p);
+			counter++;
         }
       }
       else
       {
-        rangeHelper<dim, nodeT, objT>(tree->L(), q, qMin, qMax, radius, func);
-        rangeHelper<dim, nodeT, objT>(tree->R(), q, qMin, qMax, radius, func);
+		rangeTraverse<dim, nodeT, objT>(tree->L(), q, radius, counter);
+		rangeTraverse<dim, nodeT, objT>(tree->R(), q, radius, counter);
       }
     }
   }
 
-  template <int dim, typename objT, typename F>
-  void rangeTraverse(
-      node<dim, objT> *tree,
-      objT query,
-      double radius,
-      F func)
-  {
-    point<dim> qMin, qMax;
-    for (size_t i = 0; i < dim; i++)
-    {
-      auto tmp = query[i] - radius;
-      qMin[i] = tmp;
-      qMax[i] = tmp + radius * 2;
-    }
-    rangeHelper<dim, node<dim, objT>, objT>(tree, query, qMin, qMax,
-                                            radius, func);
-  }
-
-  template <int dim, typename objT>
-  parlay::sequence<objT *> rangeSearch(
-      node<dim, objT> *tree,
-      objT query,
-      double radius)
-  {
-    parlay::sequence<objT *> output;
-    auto collect = [&](objT *p)
-    { output.push_back(p); };
-    rangeTraverse(tree, query, radius, collect);
-    return output;
-  }
 
   template <int dim, typename objT>
   int rangeCount(
@@ -107,9 +71,7 @@ namespace pargeo::kdTree
       double radius)
   {
     int output = 0;
-    auto collect = [&](objT *p)
-    { ++output; };
-    rangeTraverse(tree, query, radius, collect);
+    rangeTraverse<dim, node<dim, objT>, objT>(tree, query, radius, output);
     return output;
   }
 
