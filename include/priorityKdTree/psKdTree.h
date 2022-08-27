@@ -335,6 +335,15 @@ namespace pargeo::psKdTree
       return myMax;
     }
 
+	inline double distSqrClosestToCenter(pointT center, pointT pMin, pointT pMax) {
+	  double dist = 0;
+      for (int d = 0; d < dim; ++ d) {
+		  double delta = std::max(pMin[d], std::min(center[d], pMax[d])) - center[d];
+		  dist += delta*delta;
+      }
+      return dist;
+    }
+
 	inline pointT pointClosestToCenter(pointT center, pointT pMin, pointT pMax) {
       pointT p;
       for (int d = 0; d < dim; ++ d) {

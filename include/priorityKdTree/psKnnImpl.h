@@ -70,8 +70,15 @@ namespace pargeo::psKdTree
 			radius = dist;
 			out = p;
 		}
-        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
-        knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+		double ldist = tree->distSqrClosestToCenter(q, tree->L()->getMin(), tree->L()->getMax());
+		double rdist = tree->distSqrClosestToCenter(q, tree->R()->getMin(), tree->R()->getMax());
+		if(ldist < rdist){
+			knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+			knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+		}else{
+			knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+			knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+		}
       }
     }
     else
@@ -100,8 +107,15 @@ namespace pargeo::psKdTree
 			radius = dist;
 			out = p;
 		}
-        knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
-        knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+		double ldist = tree->distSqrClosestToCenter(q, tree->L()->getMin(), tree->L()->getMax());
+		double rdist = tree->distSqrClosestToCenter(q, tree->R()->getMin(), tree->R()->getMax());
+		if(ldist < rdist){
+			knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+			knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+		}else{
+			knnRange<dim, nodeT, objT>(tree->R(), q, radius, out);
+			knnRange<dim, nodeT, objT>(tree->L(), q, radius, out);
+		}
       }
     }
   }
