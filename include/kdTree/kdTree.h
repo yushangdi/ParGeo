@@ -28,9 +28,6 @@
 
 namespace pargeo::kdTree
 {
-
-
-
 	/* Kd-tree node */
 
 	template <int _dim, class _objT>
