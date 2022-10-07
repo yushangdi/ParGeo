@@ -26,7 +26,7 @@ namespace pargeo {
   		pargeo::write_add(&count, number);
   	}
 
-  	inline pointT pointClosestToCenter(pointT& center, pointT& pMin, pointT& pMax) {
+  	inline pointT pointClosestToCenter(pointT& pMin, pointT& pMax) {
 		pointT p;
 		for (int d = 0; d < _dim; ++ d) {
 			p[d] = std::max(pMin[d], std::min(center[d], pMax[d]));
@@ -34,7 +34,7 @@ namespace pargeo {
 		return p;
 	}
 
-	inline pointT pointFarthestFromCenter(pointT center, pointT& pMin, pointT& pMax){
+	inline pointT pointFarthestFromCenter(pointT& pMin, pointT& pMax){
 		pointT p;
 		for (int d = 0; d < _dim; ++ d){
 			p[d] = (center[d]*2 < pMin[d]+pMax[d]) ? pMax[d] : pMin[d]; 
@@ -42,12 +42,28 @@ namespace pargeo {
 		return p;
 	}
 
+	inline int compareBox(pointT pMin, pointT pMax) {
+			pointT pc = pointClosestToCenter(pMin, pMax);
+			double pcToCenter = pc.distSqr(center); //squared distance
+			if(pcToCenter <= radius*radius) {
+				pointT pf = pointFarthestFromCenter(pMin, pMax);
+				double pfToCenter = pf.distSqr(center);
+				if(pfToCenter <= radius*radius){
+					return 0; // include
+				}else{
+					return  1; // overlap
+				}
+			}else{
+				return 2; // exclude
+			}
+		}
+
   	bool intersect_rect(pointT& minR, pointT& maxR){
-  		return center.distSqr(pointClosestToCenter(center, minR, maxR)) < radius*radius;
+  		return center.distSqr(pointClosestToCenter(minR, maxR)) < radius*radius;
   	}
 
   	bool contains_rect(pointT& minR, pointT& maxR){
-  		return center.distSqr(pointFarthestFromCenter(center, minR, maxR)) < radius*radius;
+  		return center.distSqr(pointFarthestFromCenter(minR, maxR)) < radius*radius;
   	}
   };  
 }
