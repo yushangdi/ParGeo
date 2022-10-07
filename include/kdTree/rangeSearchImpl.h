@@ -33,7 +33,7 @@ namespace pargeo::kdTree
   template <int dim, typename nodeT, typename objT>
   void rangeTraverse(nodeT *tree, objT &q, double radius, int &counter)
   {
-	int relation = tree->boxBallCompare(q, radius, tree->getMin(), tree->getMax());
+	  int relation = tree->boxBallCompare(q, radius, tree->getMin(), tree->getMax());
 
     if (relation == tree->boxExclude)
     {
@@ -41,7 +41,7 @@ namespace pargeo::kdTree
     }
     else if (relation == tree->boxInclude)
     {
-	  counter += tree->size();
+      counter += tree->size();
     }
     else
     { // intersect
@@ -52,13 +52,13 @@ namespace pargeo::kdTree
           objT *p = tree->getItem(i);
           double dist = q.dist(*p);
           if (dist <= radius)
-			counter++;
+		      	counter++;
         }
       }
       else
       {
-		rangeTraverse<dim, nodeT, objT>(tree->L(), q, radius, counter);
-		rangeTraverse<dim, nodeT, objT>(tree->R(), q, radius, counter);
+    		rangeTraverse<dim, nodeT, objT>(tree->L(), q, radius, counter);
+	     	rangeTraverse<dim, nodeT, objT>(tree->R(), q, radius, counter);
       }
     }
   }
