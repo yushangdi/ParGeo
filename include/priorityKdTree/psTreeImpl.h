@@ -56,7 +56,7 @@ namespace pargeo::psKdTree
             Sums[i] = c;
           },
           fl);
-      size_t m = scan_inplace(make_slice(Sums), addm<size_t>());
+      size_t m = scan_inplace(Sums);
       sequence<T> Out = sequence<T>::uninitialized(n);
       sliced_for(
           n, _block_size,
@@ -94,8 +94,8 @@ namespace pargeo::psKdTree
   {
     intT P = parlay::num_workers() * 8;
     intT blockSize = (size() + P - 1) / P;
-    pointT localMin[P];
-    pointT localMax[P];
+    std::vector<pointT> localMin(P);
+    std::vector<pointT> localMax(P);
     for (intT i = 0; i < P; ++i)
     {
       localMin[i] = pointT(items[0]->coords());

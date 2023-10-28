@@ -193,9 +193,9 @@ namespace pargeo::psKdTree
 
     nodeT *par;
 
-    parlay::slice<_objT **, _objT **> items;
+    parlay::slice<_objT **, _objT **> items = parlay::slice<_objT **, _objT **>(nullptr, nullptr);
 
-	parlay::slice<nodeT **, nodeT **> itemLeaf;
+	parlay::slice<nodeT **, nodeT **> itemLeaf = parlay::slice<nodeT **, nodeT **>(nullptr, nullptr);
 
     inline void minCoords(pointT &_pMin, pointT &p)
     {
@@ -256,9 +256,12 @@ namespace pargeo::psKdTree
 
     inline nodeT *siblin() { return sib; }
 
-	inline bool empty() { return items.size()==0; }
+	  inline bool empty() { return size()==0; }
 
-    inline intT size() { return items.size(); }
+    inline intT size() { 
+      if (items.begin() == nullptr) return 0;
+      return items.size(); 
+      }
 
     inline _objT *operator[](intT i) { return items[i]; }
 
