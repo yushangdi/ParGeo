@@ -60,35 +60,37 @@ namespace pargeo {
 
     void setEmpty() {x[0]=empty;}
 
-    bool isEmpty() {return x[0]==empty;}
+    bool isEmpty() const {return x[0]==empty;}
 
     template<class pt>
-    pt operator+(pt op2) {
+    pt operator+(pt op2) const {
       _tData xx[_dim];
       for (int i=0; i<_dim; ++i) xx[i] = x[i]+op2.x[i];
       return pt(xx, attribute);}
 
     template<class pt> // todo add template for all (for derived class)
-    pt operator-(pt op2) {
+    pt operator-(pt op2) const {
       _tData xx[_dim];
       for (int i=0; i<_dim; ++i) xx[i] = x[i]-op2.x[i];
       return pt(xx, attribute);}
 
-    _point operator*(_tData dv) {
+    _point operator*(_tData dv) const {
       _tData xx[_dim];
       for (int i=0; i<_dim; ++i) xx[i] = x[i]*dv;
       return _point(xx, attribute);}
 
-    _point operator/(_tData dv) {
+    _point operator/(_tData dv) const {
       _tData xx[_dim];
       for (int i=0; i<_dim; ++i) xx[i] = x[i]/dv;
       return _point(xx, attribute);}
 
     _tData& operator[](int i) {return x[i];}
 
+    _tData operator[](int i) const {return x[i];}
+
     _tData& at(int i) {return x[i];}
 
-    friend bool operator<(_point a, _point b) {
+    friend bool operator<(const _point& a,const _point& b) {
       _tData aVal = 0;
       _tData bVal = 0;
       for (int ii=0; ii<dim; ++ii) {
@@ -98,46 +100,46 @@ namespace pargeo {
       return aVal < bVal;
     }
 
-    static bool attComp(_point a, _point b){
+    static bool attComp(const _point& a, const _point& b) {
       return a.attribute < b.attribute;
     }
 
-	static bool attCompRev(_point a, _point b){
+	static bool attCompRev(const _point& a, const _point& b) {
       return b.attribute < a.attribute;
     }
 
-	  static _point max_point(){
+	  static _point max_point() {
 		  _point ret;
 		  for(int i=0;i<dim;++i) ret[i]=std::numeric_limits<_tData>::max()-1;
 		  return ret;
 	  }
 
-	  static _point min_point(){
+	  static _point min_point() {
 		  _point ret;
 		  for(int i=0;i<dim;++i) ret[i]=std::numeric_limits<_tData>::lowest()+1;
 		  return ret;
 	  }
 
-    friend bool operator==(_point a, _point b) {
+    friend bool operator==(const _point& a, const _point& b) {
       for (int ii=0; ii<dim; ++ii) {
 	     if (a[ii] != b[ii]) return false;}
        if(a.attribute == b.attribute) return true; else return false;
     }
 
-    friend bool operator!=(_point a, _point b) {return !(a==b);}
+    friend bool operator!=(const _point& a, const _point& b) {return !(a==b);}
 
     _tData* coords() {return x;}
 
-    inline _tData distSqr(_point p) {
+    _tData distSqr(const _point& p) const {
       _tData xx=0;
       for (int i=0; i<_dim; ++i) xx += (x[i]-p.x[i])*(x[i]-p.x[i]);
       return xx;}
 
-    inline _tFloat dist(_point p) {
+    inline _tFloat dist(const _point& p) const {
       return sqrt(distSqr(p));
     }
 
-    _tData dot(_point p2) {
+    _tData dot(const _point& p2) const {
       _tData r = 0;
       for(int i=0; i<dim; ++i) r += x[i]*p2[i];
       return r;}
@@ -177,21 +179,28 @@ namespace pargeo {
 }
 
 template<int dim>
-static std::ostream& operator<<(std::ostream& os, const pargeo::point<dim> v) {
+static std::ostream& operator<<(std::ostream& os, const pargeo::point<dim>& v) {
   for (int i=0; i<v.dim; ++i)
     os << v.x[i] << " ";
   return os;
 }
 
 template<int dim>
-static std::ostream& operator<<(std::ostream& os, const pargeo::fpoint<dim> v) {
+static std::ostream& operator<<(std::ostream& os, const pargeo::fpoint<dim>& v) {
   for (int i=0; i<v.dim; ++i)
     os << v.x[i] << " ";
   return os;
 }
 
 template<int dim>
-static std::ostream& operator<<(std::ostream& os, const pargeo::lpoint<dim> v) {
+static std::ostream& operator<<(std::ostream& os, const pargeo::lpoint<dim>& v) {
+  for (int i=0; i<v.dim; ++i)
+    os << v.x[i] << " ";
+  return os;
+}
+
+template<int dim, class _tAtt>
+static std::ostream& operator<<(std::ostream& os, const pargeo::pointD<dim, _tAtt>& v) {
   for (int i=0; i<v.dim; ++i)
     os << v.x[i] << " ";
   return os;
